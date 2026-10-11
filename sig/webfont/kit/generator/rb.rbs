@@ -1,0 +1,12 @@
+module Webfont
+  module Kit
+    module Generator
+      module Rb
+        module Version
+          VERSION: String
+        end
+        VERSION: String
+      end
+    end
+  end
+end
