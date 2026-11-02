@@ -1,6 +1,12 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "webfont_kit_generator"
+# Entry point for the Ruby port of webfont-kit-generator.
+#
+# Upstream's desktop file sets HANDLES_OPEN, so font files can be opened with
+# the app; any paths given here are loaded into the window once it is up, which
+# is what upstream's do_open does.
 
-WebfontKitGenerator::Application.new.build.run
+require 'webfont_kit_generator'
+
+WebfontKitGenerator::Application.new.open_files(ARGV).build.run([])
