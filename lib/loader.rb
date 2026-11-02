@@ -65,6 +65,18 @@ class Loader
       @tables = read_directory
     end
 
+    # { "glyf" => bytes, … } for every table the directory lists. The loader
+    # only reads three of them; the generator rewrites the set and packs it
+    # back into a WOFF container, so it needs them all.
+    def tables
+      @table_bytes ||= @tables.keys.to_h { |tag| [tag, table(tag)] }
+    end
+
+    # The four bytes the font opens with — 0x00010000 for TrueType outlines,
+    # 'OTTO' for CFF ones. Both WOFF containers carry it through unchanged as
+    # their `flavor` field.
+    def sfnt_version = @bytes[@offset, 4]
+
     def mac_style
       table('head').then do |head|
         if head.nil?

@@ -3,6 +3,7 @@
 require 'adwaita'
 require_relative 'font'
 require_relative 'font_row'
+require_relative 'generator'
 require_relative 'google_dialog'
 require_relative 'loader'
 require_relative 'log'
@@ -29,7 +30,7 @@ class Window
   # the parameterised `remove-font` which is built on its own. The
   # accelerators are installed by the application, which is where upstream
   # binds them.
-  ACTIONS = ['set-dir', 'open', 'google', 'back', 'show-help-overlay'].freeze
+  ACTIONS = ['set-dir', 'open', 'google', 'generate', 'back', 'show-help-overlay'].freeze
 
   # The actions that open a file chooser, disabled while the window is showing
   # anything other than the font list.
@@ -92,6 +93,20 @@ class Window
   # Entry point for the application's `open` handler, the file chooser, the
   # drop target and the Google Fonts importer alike.
   def load_fonts(files) = loader.load(files)
+
+  # The directory the kit is written into. The file chooser sets it through
+  # here once the user has picked one, and so does test/drive_generator.rb.
+  def select_out_dir(selected)
+    selected.then do |chosen|
+      if chosen && File.writable?(chosen.path.to_s)
+        @out_dir = chosen
+        directory.label = File.basename(chosen.path.to_s)
+        check_ready_state
+      elsif chosen
+        toasts.add_toast(Adwaita::Toast.new('You don’t have write access to the selected directory.'))
+      end
+    end
+  end
 
   def loader = @loader ||= Loader.new(self, model)
 
@@ -286,6 +301,13 @@ class Window
     end
   end
 
+  def generate_button
+    @generate_button ||= Gtk::Button.new(label: 'Generate').tap do |button|
+      button.action_name = 'win.generate'
+      button.add_css_class('suggested-action')
+    end
+  end
+
   # --- Progress page ------------------------------------------------------
 
   def progress_handle = @progress_handle ||= Gtk::WindowHandle.new
@@ -474,6 +496,11 @@ class Window
       progress_box.tap do |box|
         box.append(progressbar)
         box.append(cancel)
+
+        # Upstream reconnects this on every generation, so its handlers pile
+        # up; connecting once and asking the window for the generation that
+        # is actually running does the same job without the pile.
+        cancel.signal_connect('clicked') { @generator&.stop }
       end
     end
 
@@ -533,6 +560,7 @@ class Window
 
     def build_action_bar
       action_bar.pack_start(directory_box)
+      action_bar.pack_end(generate_button)
 
       directory_box.tap do |box|
         box.append(directory_label_box)
@@ -600,6 +628,37 @@ class Window
       end
     end
 
+  # Held in an ivar because the generation runs on a thread the generator
+  # owns, and because the cancel button asks the window for it.
+    def action_generate
+      out_dir_path.then do |path|
+        unless path.nil?
+          @generator = new_generator(path)
+          @generator.run
+        end
+      end
+    end
+
+    def out_dir_path
+      @out_dir&.path.then do |path|
+        unless path.nil? || path.to_s.empty?
+          path.to_s
+        end
+      end
+    end
+
+    def new_generator(path)
+      Generator.new(
+        self,
+        path:         path,
+        fonts:        to_array(model),
+        formats:      options.formats,
+        ranges:       options.subsetting,
+        base64:       options.base64?,
+        font_display: options.font_display,
+      )
+    end
+
     def action_back
       unless @processing
         appstack.visible_child_name = 'main'
@@ -616,22 +675,11 @@ class Window
 
   # --- Behaviour ----------------------------------------------------------
 
-    def select_out_dir(selected)
-      selected.then do |chosen|
-        if chosen && File.writable?(chosen.path.to_s)
-          @out_dir = chosen
-          directory.label = File.basename(chosen.path.to_s)
-          check_ready_state
-        elsif chosen
-          toasts.add_toast(Adwaita::Toast.new('You don’t have write access to the selected directory.'))
-        end
-      end
-    end
-
   # The list is empty until fonts are loaded: no sidebar, no bottom bar, and
   # the splash page instead of the list.
     def check_ready_state
       model.n_items.positive?.then do |has_items|
+        window.lookup_action('generate')&.set_enabled(has_items && !@out_dir.nil?)
         split.show_sidebar = has_items
         toolbar_view.reveal_bottom_bars = has_items
         if has_items

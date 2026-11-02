@@ -106,6 +106,15 @@
           gemdir = ./nix;
         };
 
+        # WOFF2 is a Brotli stream, and lib/generator.rb dlopens the encoder
+        # through Fiddle. A Nix store path is on no loader search path, so both
+        # the dev shell and the packaged wrapper hand over the file itself.
+        brotliEncoder = "${pkgs.lib.getLib pkgs.brotli}/lib/libbrotlienc.so.1";
+
+        # A font for test/drive_generator.rb to convert. Only the drive script
+        # reads it; the app itself takes whatever the user opens.
+        sampleFont = "${pkgs.dejavu_fonts.minimal}/share/fonts/truetype/DejaVuSans.ttf";
+
         # The launcher is whatever the gemspec installs into exe/. Reading the
         # directory keeps this flake generic: no name to keep in step by hand.
         launcher = builtins.head (builtins.attrNames (builtins.readDir ./exe));
@@ -160,6 +169,7 @@
               --add-flags "-I$out/share/webfont-kit-generator/lib" \
               --add-flags "$out/share/webfont-kit-generator/exe/${launcher}" \
               --set GI_TYPELIB_PATH "${typelibPath}" \
+              --set WEBFONT_BROTLI_LIB "${brotliEncoder}" \
               --prefix XDG_DATA_DIRS : "$out/share" \
               --prefix XDG_DATA_DIRS : "$out/share/gsettings-schemas/webfont-kit-generator-0.1.0" \
               --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}" \
@@ -209,6 +219,8 @@
             export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
             export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
             export RUBYLIB="$PWD/lib''${RUBYLIB:+:$RUBYLIB}"
+            export WEBFONT_BROTLI_LIB="${brotliEncoder}"
+            export WEBFONT_SAMPLE_FONT="${sampleFont}"
             [ -d data/schemas ] && export GSETTINGS_SCHEMA_DIR="$PWD/data/schemas"
             unset BUNDLE_GEMFILE BUNDLE_FROZEN
             echo "webfont-kit-generator devshell — ruby $(ruby -e 'print RUBY_VERSION')"
