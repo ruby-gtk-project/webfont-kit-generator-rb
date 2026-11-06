@@ -3,8 +3,9 @@
 require 'adwaita'
 require 'cgi'
 require 'fileutils'
+require 'gio2'
 require 'json'
-require 'net/http'
+require 'soup3'
 require 'uri'
 
 # GoogleFont is one entry of the Google Fonts API's font list. Only `family`
@@ -36,13 +37,13 @@ GoogleFontInfo = Data.define(:name, :variants)
 #
 # Ported from upstream's webfontkitgenerator/google.py and google.blp.
 #
-# Upstream makes its requests with libsoup 3; there are no Ruby bindings for
-# libsoup and no Soup typelib in this app's closure, so the two requests it
-# makes — the font database, then each font file — go through Net::HTTP on a
-# background thread, and every touch of a widget is posted back to the main
-# loop with GLib::Idle.add. The ETag round trip is the same: the saved ETag
-# goes out as If-None-Match, and a 304 means the cached database on disk is
-# still current.
+# Upstream makes its requests with libsoup 3, through the `soup3` gem here.
+# The two requests it makes — the font database, then each font file — go
+# through `Soup::Session#send_and_read_async`, which (unlike a background
+# thread) already calls back on the GLib main loop, so widgets are touched
+# directly from the completion callbacks. The ETag round trip is the same:
+# the saved ETag goes out as If-None-Match, and a 304 means the cached
+# database on disk is still current.
 class GoogleDialog
   API_URL = 'https://www.googleapis.com/webfonts/v1/webfonts?key=%s'
   USER_AGENT = 'Webfont Bundler'
@@ -53,6 +54,7 @@ class GoogleDialog
   def initialize(window)
     @window = window
     @settings = window.options.settings
+    @cancellable = Gio::Cancellable.new
     @cancelled = false
     @running = false
     @errors = []
@@ -60,6 +62,10 @@ class GoogleDialog
     @files = []
     @total = 0
     @pending = 0
+  end
+
+  def session
+    @session ||= Soup::Session.new.tap { |s| s.user_agent = USER_AGENT }
   end
 
   def build
@@ -430,50 +436,40 @@ class GoogleDialog
       @running = true
       GLib::Timeout.add(PROGRESS_INTERVAL) { step_progressbar }
 
-      Thread.new { fetch_database }
-    end
-
-    def fetch_database
-      database_response.then do |response|
-        on_database_response(response)
-      end
-    rescue StandardError => e
-      warn "Google Fonts request failed: #{e.message}"
-      on_main { fail_with('Couldn’t download the Google Fonts data.') }
-    end
-
-    def database_response
-      URI.parse(format(API_URL, @settings.get_string('google-api-key'))).then do |uri|
-        Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-          http.request(database_request(uri))
+      database_message.then do |message|
+        session.send_and_read_async(message, 0, @cancellable) do |soup_session, result|
+          on_database_response(message, soup_session, result)
         end
       end
     end
 
-    def database_request(uri)
-      Net::HTTP::Get.new(uri).tap do |request|
-        request['User-Agent'] = USER_AGENT
-        if local_data_exists?
-          request['If-None-Match'] = @settings.get_string('google-fonts-sha')
+    def database_message
+      Soup::Message.new('GET', format(API_URL, @settings.get_string('google-api-key'))).tap do |message|
+        if message && local_data_exists?
+          message.request_headers.append('If-None-Match', @settings.get_string('google-fonts-sha'))
         end
       end
     end
 
-    def on_database_response(response)
-      warn "Google Fonts Response Status #{response.code} #{response.message}"
+    def on_database_response(message, soup_session, result)
+      bytes = soup_session.send_and_read_finish(result)
+      warn "Google Fonts Response Status #{message.status_code} #{message.reason_phrase}"
 
-      case response
-      when Net::HTTPOK then store_database(response)
-      when Net::HTTPNotModified then find_on_data(nil)
+      case message.status
+      when Soup::Status::OK then store_database(bytes, message.response_headers)
+      when Soup::Status::NOT_MODIFIED then use_local_or_fail
       else use_local_or_fail
       end
+    rescue GLib::Error => e
+      warn "Google Fonts request failed: #{e.message}"
+      fail_with('Couldn’t download the Google Fonts data.')
     end
 
-    def store_database(response)
-      JSON.parse(response.body).then do |data|
+    def store_database(bytes, response_headers)
+      JSON.parse(bytes.get_data.to_s).then do |data|
         if data.key?('kind')
           save_local_data(data['items'])
-          @settings.set_string('google-fonts-sha', response['ETag'].to_s)
+          @settings.set_string('google-fonts-sha', response_headers.get_one('ETag').to_s)
           find_on_data(data['items'].map { |entry| GoogleFont.from_data(entry) })
         else
           use_local_or_fail
@@ -488,7 +484,7 @@ class GoogleDialog
       if local_data_exists?
         find_on_data(nil)
       else
-        on_main { fail_with('Couldn’t download the Google Fonts data.') }
+        fail_with('Couldn’t download the Google Fonts data.')
       end
     end
 
@@ -506,7 +502,7 @@ class GoogleDialog
             download_files(files)
           else
             @errors = ['Couldn’t find any fonts for the given url.']
-            on_main { terminate_dialog }
+            terminate_dialog
           end
         end
       end
@@ -544,39 +540,36 @@ class GoogleDialog
 
     def download_files(files)
       @pending = @total
-      on_main { progressbar.text = nil }
+      progressbar.text = nil
 
       files.each { |family, name, url| download_file(family, name, url) }
-      on_main { terminate_dialog }
     end
 
     def download_file(family, name, url)
       unless @cancelled
-        on_main { loading_page.title = "Downloading #{family}" }
-        write_font(name, fetch_font(url))
-        @pending -= 1
+        loading_page.title = "Downloading #{family}"
+        session.send_and_read_async(Soup::Message.new('GET', url), 0, @cancellable) do |soup_session, result|
+          on_font_downloaded(soup_session, result, name)
+        end
       end
     end
 
-    def fetch_font(url)
-      URI.parse(url).then do |uri|
-        Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
-          http.request(Net::HTTP::Get.new(uri).tap { |request| request['User-Agent'] = USER_AGENT }).body
-        end
+    def on_font_downloaded(soup_session, result, name)
+      write_font(name, soup_session.send_and_read_finish(result))
+    rescue GLib::Error => e
+      warn "Could not download the font file for #{name}: #{e.message}"
+      @errors << "Couldn’t download the font file for #{name}."
+    ensure
+      @pending -= 1
+      if @pending.zero?
+        terminate_dialog
       end
-    rescue StandardError => e
-      warn "Could not download #{url}: #{e.message}"
-      nil
     end
 
-    def write_font(name, body)
-      if body.nil?
-        @errors << "Couldn’t download the font file for #{name}."
-      else
-        Gio::File.new_tmp(nil).first.then do |file|
-          File.binwrite(file.path, body)
-          @files << file
-        end
+    def write_font(name, bytes)
+      Gio::File.new_tmp(nil).first.then do |file|
+        File.binwrite(file.path, bytes.get_data.to_s)
+        @files << file
       end
     rescue StandardError => e
       warn "Could not write the font file for #{name}: #{e.message}"
@@ -600,6 +593,7 @@ class GoogleDialog
     def on_cancel_clicked
       unless @cancelled
         @cancelled = true
+        @cancellable.cancel
         terminate_dialog(cancel: true)
       end
     end
@@ -613,13 +607,5 @@ class GoogleDialog
         progressbar.pulse
       end
       @running
-    end
-
-  # Widgets are only ever touched from the main loop.
-    def on_main(&block)
-      GLib::Idle.add do
-        block.call
-        false
-      end
     end
 end

@@ -96,6 +96,13 @@ Gem::Specification.new do |spec|
   spec.executables = ["webfont-kit-generator"]
   spec.require_paths = ["lib"]
 
+  # Runtime dependencies: the GTK4/Libadwaita toolkit this app is built on,
+  # plus the Google Fonts importer's HTTP client.
+  spec.add_dependency("glib2", "~> 4.3")
+  spec.add_dependency("gtk4", "~> 4.3")
+  spec.add_dependency("adwaita", "~> 4.3")
+  spec.add_dependency("soup3", "~> 1.0")
+
   # NOTE: It is preferable to list development dependencies in the gemspec due to increased
   #       visibility and discoverability.
   #       However, development dependencies in gemspec will install on
