@@ -5,6 +5,8 @@ Gemfile.lock
 
 # Build Artifacts
 /pkg/
+# Compiled gettext catalogues (rake gettext:mo:update); po/*.po is the source.
+/locale/
 /tmp/*
 !/tmp/.gitignore
 *.gem

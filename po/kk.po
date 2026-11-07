@@ -1,0 +1,348 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the webfontkitgenerator package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: webfontkitgenerator\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-18 11:45-0500\n"
+"PO-Revision-Date: 2026-01-31 18:01+0000\n"
+"Last-Translator: Baurzhan Muftakhidinov <baurthefirst@gmail.com>\n"
+"Language-Team: Kazakh <https://hosted.weblate.org/projects/webfont-bundler/"
+"webfont-bundler/kk/>\n"
+"Language: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.16-dev\n"
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:2
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:6
+#: webfontkitgenerator/main.py:37
+msgid "Webfont Bundler"
+msgstr "Webfont Bundler"
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:3
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:7
+msgid "Create @font-face kits easily"
+msgstr "@font-face жиынтықтарын оңай жасау"
+
+#. Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:10
+msgid "font;font-face;"
+msgstr "font;font-face;қаріп;"
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:9
+msgid ""
+"Webfont Bundler is a simple utility that allows you to generate woff, woff2 "
+"and the necessary CSS boilerplate from non-web font formats (otf and ttf)."
+msgstr ""
+"Webfont Bundler — веб-қаріп емес пішімдерден (otf және ttf) woff, woff2 "
+"пішімдерін және қажетті CSS код қаңқасын жасауға мүмкіндік беретін қарапайым "
+"утилита."
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:12
+msgid ""
+"Webfont Bundler also includes a tool to Download fonts from Google Fonts for "
+"self-hosting."
+msgstr ""
+"Сондай-ақ Webfont Bundler өз серверіңізде орналастыру үшін Google Fonts-тан "
+"қаріптерді жүктеп алу сайманын қамтиды."
+
+#: webfontkitgenerator/window.blp:9 webfontkitgenerator/google.blp:28
+msgid "Import from Google Fonts"
+msgstr "Google Fonts-тан импорттау"
+
+#: webfontkitgenerator/window.blp:18
+msgid "_Keyboard Shortcuts"
+msgstr "_Пернетақта жарлықтары"
+
+#: webfontkitgenerator/window.blp:23
+msgid "_About Webfont Bundler"
+msgstr "Webfont Bundler тур_алы"
+
+#: webfontkitgenerator/window.blp:49 webfontkitgenerator/window.blp:104
+msgid "Open Fonts"
+msgstr "Қаріптерді ашу"
+
+#: webfontkitgenerator/window.blp:56
+msgid "Main Menu"
+msgstr "Бас мәзір"
+
+#: webfontkitgenerator/window.blp:82
+msgid "Add some fonts"
+msgstr "Бірнеше қаріп қосу"
+
+#: webfontkitgenerator/window.blp:175 webfontkitgenerator/window.py:61
+msgid "Select Output Directory"
+msgstr "Шығыс бумасын таңдау"
+
+#: webfontkitgenerator/window.blp:186
+msgid "Browse..."
+msgstr "Шолу..."
+
+#: webfontkitgenerator/window.blp:193
+msgid "Generate"
+msgstr "Жасау"
+
+#: webfontkitgenerator/window.blp:221 webfontkitgenerator/google.blp:94
+msgid "Cancel"
+msgstr "Бас тарту"
+
+#: webfontkitgenerator/window.blp:248
+msgid "Back"
+msgstr "Артқа"
+
+#: webfontkitgenerator/window.blp:256
+msgid "Information"
+msgstr "Ақпарат"
+
+#: webfontkitgenerator/window.blp:263 webfontkitgenerator/generator.py:69
+msgid "Generation finished!"
+msgstr "Жасау аяқталды!"
+
+#: webfontkitgenerator/window.blp:273
+msgid "To link your fonts, copy the code below into the head of your HTML:"
+msgstr ""
+"Қаріптеріңізге сілтеме жасау үшін төмендегі кодты HTML-дің head бөліміне "
+"көшіріңіз:"
+
+#: webfontkitgenerator/window.blp:282
+msgid "Or import it directly to your CSS:"
+msgstr "Немесе оны тікелей CSS-ке импорттаңыз:"
+
+#: webfontkitgenerator/window.blp:291
+msgid "Open in Files"
+msgstr "Файлдарда ашу"
+
+#: webfontkitgenerator/window.blp:310
+msgid "Logs"
+msgstr "Журналдар"
+
+#: webfontkitgenerator/options.blp:7
+msgid "Options"
+msgstr "Опциялар"
+
+#: webfontkitgenerator/options.blp:31
+msgid "Subsetting"
+msgstr "Ішкі жиынтықтар"
+
+#: webfontkitgenerator/options.blp:32
+msgid "Limit the character set to reduce file size"
+msgstr "Файл өлшемін азайту үшін таңбалар жиынын шектеу"
+
+#: webfontkitgenerator/options.blp:51
+msgid "Latin"
+msgstr "Латын"
+
+#: webfontkitgenerator/options.blp:60
+msgid "Cyrillic"
+msgstr "Кириллица"
+
+#: webfontkitgenerator/options.blp:69
+msgid "Greek"
+msgstr "Грек"
+
+#: webfontkitgenerator/options.blp:78
+msgid "Vietnamese"
+msgstr "Вьетнам"
+
+#: webfontkitgenerator/options.blp:95
+msgid "Latin Extended"
+msgstr "Кеңейтілген латын"
+
+#: webfontkitgenerator/options.blp:104
+msgid "Cyrillic Extended"
+msgstr "Кеңейтілген кириллица"
+
+#: webfontkitgenerator/options.blp:113
+msgid "Greek Extended"
+msgstr "Кеңейтілген грек"
+
+#: webfontkitgenerator/options.blp:122
+msgid "Devanagari"
+msgstr "Деванагари"
+
+#: webfontkitgenerator/options.blp:145
+msgid "Custom"
+msgstr "Таңдауыңызша"
+
+#: webfontkitgenerator/options.blp:150
+msgid ""
+"Comma separated values. Single hex values and/or ranges separated with "
+"hyphens."
+msgstr ""
+"Үтірмен ажыратылған мәндер. Жалғыз hex мәндері және/немесе дефиспен "
+"ажыратылған ауқымдар."
+
+#: webfontkitgenerator/options.blp:173
+msgid "CSS"
+msgstr "CSS"
+
+#: webfontkitgenerator/options.blp:176
+msgid "Base64 Encode"
+msgstr "Base64 кодтау"
+
+#: webfontkitgenerator/options.blp:177
+msgid "Embed fonts in the CSS"
+msgstr "Қаріптерді CSS ішіне ендіру"
+
+#: webfontkitgenerator/options.blp:181
+msgid "Font display"
+msgstr "Қаріпті көрсету"
+
+#: webfontkitgenerator/options.blp:182
+msgid "The CSS font-display descriptor"
+msgstr "CSS font-display дескрипторы"
+
+#: webfontkitgenerator/options.blp:185
+msgid "Disabled"
+msgstr "Сөндірулі"
+
+#: webfontkitgenerator/google.blp:29
+msgid "Download fonts from Google Fonts for self-hosting"
+msgstr "Өз серверіңізде орналастыру үшін Google Fonts-тан қаріптерді жүктеп алу"
+
+#: webfontkitgenerator/google.blp:64
+msgid "Download Fonts"
+msgstr "Қаріптерді жүктеп алу"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:11
+msgctxt "shortcut window"
+msgid "General"
+msgstr "Жалпы"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:14
+msgctxt "shortcut window"
+msgid "Show Shortcuts"
+msgstr "Жарлықтарды көрсету"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:19
+msgctxt "shortcut window"
+msgid "Open Fonts"
+msgstr "Қаріптерді ашу"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:24
+msgctxt "shortcut window"
+msgid "Select Output Directory"
+msgstr "Шығыс бумасын таңдау"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:29
+msgctxt "shortcut window"
+msgid "Google Fonts Importer"
+msgstr "Google Fonts импорттаушысы"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:34
+msgctxt "shortcut window"
+msgid "Generate"
+msgstr "Жасау"
+
+#: webfontkitgenerator/main.py:76
+msgid "translator-credits"
+msgstr "Baurzhan Muftakhidinov <baurthefirst@gmail.com>"
+
+#: webfontkitgenerator/window.py:65
+msgid "Open Font Files"
+msgstr "Қаріп файлдарын ашу"
+
+#: webfontkitgenerator/window.py:68
+msgid "OTF & TTF"
+msgstr "OTF және TTF"
+
+#: webfontkitgenerator/window.py:165
+msgid "You don’t have write access to the selected directory."
+msgstr "Таңдалған бумаға жазуға қол жеткізу құқығыңыз жоқ."
+
+#. name = data['name-slug']
+#: webfontkitgenerator/generator.py:79
+#, python-brace-format
+msgid "Generating fonts for {name}:"
+msgstr "{name} үшін қаріптер жасалуда:"
+
+#: webfontkitgenerator/generator.py:81
+#, python-brace-format
+msgid "Generating {name}"
+msgstr "{name} жасалуда"
+
+#: webfontkitgenerator/generator.py:142
+#, python-brace-format
+msgid "Generated <i>{filename}</i> with <i>{count}</i> glyphs."
+msgstr "<i>{count}</i> глифті <i>{filename}</i> жасалды."
+
+#: webfontkitgenerator/generator.py:156
+#, python-brace-format
+msgid "No glyphs where found for {range}. Skipping."
+msgstr "{range} ауқымы үшін глифтер табылмады. Аттап өтіледі."
+
+#: webfontkitgenerator/generator.py:171
+msgid "Generating CSS:"
+msgstr "CSS жасалуда:"
+
+#: webfontkitgenerator/generator.py:172
+msgid "Finishing"
+msgstr "Аяқтау"
+
+#: webfontkitgenerator/generator.py:193
+#, python-brace-format
+msgid "Generated <i>{filename}</i>."
+msgstr "<i>{filename}</i> жасалды."
+
+#: webfontkitgenerator/generator.py:197
+msgid "There is no CSS to generate."
+msgstr "Жасалатын CSS жоқ."
+
+#: webfontkitgenerator/google.py:91
+msgid "Loading Google Fonts Database"
+msgstr "Google Fonts дерекқоры жүктелуде"
+
+#: webfontkitgenerator/google.py:160
+msgid "Couldn’t download the Google Fonts data."
+msgstr "Google Fonts деректерін жүктеп алу мүмкін болмады."
+
+#: webfontkitgenerator/google.py:191
+#, python-brace-format
+msgid "Couldn’t find the {variant} variant for {family_name}."
+msgstr "{family_name} үшін {variant} нұсқасы табылмады."
+
+#. If no family found, add error to list
+#: webfontkitgenerator/google.py:199
+#, python-brace-format
+msgid "Couldn’t find the {family_name} font family."
+msgstr "{family_name} қаріптер тобы табылмады."
+
+#. If not files found at all, show general error and terminate
+#: webfontkitgenerator/google.py:208
+msgid "Couldn’t find any fonts for the given url."
+msgstr "Берілген сілтеме (url) бойынша ешқандай қаріп табылмады."
+
+#: webfontkitgenerator/google.py:280
+msgid "Please set a valid url"
+msgstr "Жарамды сілтемені (url) көрсетіңіз"
+
+#: webfontkitgenerator/google.py:308
+#, python-brace-format
+msgid "Downloading {name}"
+msgstr "{name} жүктелуде"
+
+#: webfontkitgenerator/google.py:332
+#, python-brace-format
+msgid "Couldn’t download the font file for {name}."
+msgstr "{name} үшін қаріп файлын жүктеп алу мүмкін болмады."
+
+#: webfontkitgenerator/google.py:353
+#, python-brace-format
+msgid "Couldn’t write the font file for {name}."
+msgstr "{name} үшін қаріп файлын жазу мүмкін болмады."
+
+#: webfontkitgenerator/loader.py:67
+#, python-brace-format
+msgid "You don’t have read access to {font} or it doesn’t exists."
+msgstr "{font} файлына оқуға қол жеткізу құқығыңыз жоқ немесе ол жоқ."
+
+#: webfontkitgenerator/loader.py:76
+#, python-brace-format
+msgid "Error: {error}."
+msgstr "Қате: {error}."

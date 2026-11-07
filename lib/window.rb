@@ -11,6 +11,7 @@ require_relative 'options'
 require_relative 'settings'
 require_relative 'shortcuts_window'
 require_relative 'source_view'
+require_relative 'translatable'
 
 # Window is the application window: the list of loaded fonts with the options
 # sidebar beside it, the progress page the generator drives, and the finished
@@ -24,6 +25,8 @@ require_relative 'source_view'
 # same widget tree. The one practical difference is that the stack goes in
 # `child` rather than Adw's `content`.
 class Window
+  include Translatable
+
   TITLE = 'Webfont Bundler'
 
   # Window actions, in the order upstream's setup_actions creates them, minus
@@ -103,7 +106,7 @@ class Window
         directory.label = File.basename(chosen.path.to_s)
         check_ready_state
       elsif chosen
-        toasts.add_toast(Adwaita::Toast.new('You don’t have write access to the selected directory.'))
+        toasts.add_toast(Adwaita::Toast.new(_('You don’t have write access to the selected directory.')))
       end
     end
   end
@@ -118,7 +121,7 @@ class Window
 
   def window
     @window ||= Gtk::ApplicationWindow.new(@app).tap do |win|
-      win.title = TITLE
+      win.title = _(TITLE)
       win.set_default_size(1000, 600)
     end
   end
@@ -148,7 +151,7 @@ class Window
 
   def add_fonts_button
     @add_fonts_button ||= Gtk::Button.new.tap do |button|
-      button.tooltip_text = 'Open Fonts'
+      button.tooltip_text = _('Open Fonts')
       button.action_name = 'win.open'
       button.icon_name = 'list-add-symbolic'
     end
@@ -156,7 +159,7 @@ class Window
 
   def menu_button
     @menu_button ||= Gtk::MenuButton.new.tap do |button|
-      button.tooltip_text = 'Main Menu'
+      button.tooltip_text = _('Main Menu')
       button.menu_model = app_menu
       button.focus_on_click = false
       button.direction = :none
@@ -174,14 +177,17 @@ class Window
 
   def importers_section
     @importers_section ||= Gio::Menu.new.tap do |section|
-      section.append('Import from Google Fonts', 'win.google')
+      section.append(_('Import from Google Fonts'), 'win.google')
     end
   end
 
   def help_section
     @help_section ||= Gio::Menu.new.tap do |section|
-      section.append('_Keyboard Shortcuts', 'win.show-help-overlay')
-      section.append("_About #{TITLE}", 'app.about')
+      section.append(_('_Keyboard Shortcuts'), 'win.show-help-overlay')
+      # Upstream's "_About Webfont Bundler" is a fixed string in window.blp,
+      # not built from the app name at runtime, so the msgid is marked fixed
+      # here too rather than interpolating TITLE into it.
+      section.append(_('_About Webfont Bundler'), 'app.about')
     end
   end
 
@@ -210,7 +216,7 @@ class Window
   end
 
   def empty_title
-    @empty_title ||= Gtk::Label.new('Add some fonts').tap do |label|
+    @empty_title ||= Gtk::Label.new(_('Add some fonts')).tap do |label|
       label.add_css_class('title-1')
     end
   end
@@ -225,7 +231,7 @@ class Window
   def splash_b = @splash_b ||= splash_image('splash-b-symbolic')
 
   def empty_open_button
-    @empty_open_button ||= Gtk::Button.new(label: 'Open Fonts').tap do |button|
+    @empty_open_button ||= Gtk::Button.new(label: _('Open Fonts')).tap do |button|
       button.halign = :center
       button.action_name = 'win.open'
       button.add_css_class('suggested-action')
@@ -288,7 +294,7 @@ class Window
   end
 
   def directory
-    @directory ||= Gtk::Label.new('Select Output Directory').tap do |label|
+    @directory ||= Gtk::Label.new(_('Select Output Directory')).tap do |label|
       label.valign = :center
       label.ellipsize = :end
       label.add_css_class('heading')
@@ -296,13 +302,15 @@ class Window
   end
 
   def browse_button
-    @browse_button ||= Gtk::Button.new(label: 'Browse…').tap do |button|
+    # Upstream's msgid is three literal periods, not an ellipsis character —
+    # kept byte-identical rather than "corrected" to a nicer-looking glyph.
+    @browse_button ||= Gtk::Button.new(label: _('Browse...')).tap do |button|
       button.action_name = 'win.set-dir'
     end
   end
 
   def generate_button
-    @generate_button ||= Gtk::Button.new(label: 'Generate').tap do |button|
+    @generate_button ||= Gtk::Button.new(label: _('Generate')).tap do |button|
       button.action_name = 'win.generate'
       button.add_css_class('suggested-action')
     end
@@ -325,7 +333,7 @@ class Window
   end
 
   def cancel
-    @cancel ||= Gtk::Button.new(label: 'Cancel').tap do |button|
+    @cancel ||= Gtk::Button.new(label: _('Cancel')).tap do |button|
       button.halign = :center
       button.add_css_class('pill')
     end
@@ -348,7 +356,7 @@ class Window
     @back_button ||= Gtk::Button.new.tap do |button|
       button.action_name = 'win.back'
       button.icon_name = 'go-previous-symbolic'
-      button.tooltip_text = 'Back'
+      button.tooltip_text = _('Back')
     end
   end
 
@@ -364,7 +372,7 @@ class Window
 
   def info_page
     @info_page ||= Adwaita::StatusPage.new.tap do |page|
-      page.title = 'Generation finished!'
+      page.title = _('Generation finished!')
       page.icon_name = 'completed-symbolic'
     end
   end
@@ -379,14 +387,14 @@ class Window
 
   def html_label
     @html_label ||= Gtk::Label.new(
-      'To link your fonts, copy the code below into the head of your HTML:',
+      _('To link your fonts, copy the code below into the head of your HTML:'),
     ).tap do |label|
       label.halign = :start
     end
   end
 
   def css_label
-    @css_label ||= Gtk::Label.new('Or import it directly to your CSS:').tap do |label|
+    @css_label ||= Gtk::Label.new(_('Or import it directly to your CSS:')).tap do |label|
       label.halign = :start
     end
   end
@@ -395,7 +403,7 @@ class Window
   def src_css = @src_css ||= source_view('css')
 
   def open_dir_button
-    @open_dir_button ||= Gtk::Button.new(label: 'Open in Files').tap do |button|
+    @open_dir_button ||= Gtk::Button.new(label: _('Open in Files')).tap do |button|
       button.halign = :center
       button.margin_top = 20
       button.add_css_class('pill')
@@ -424,13 +432,13 @@ class Window
 
   def out_dir_chooser
     @out_dir_chooser ||= Gtk::FileDialog.new.tap do |chooser|
-      chooser.title = 'Select Output Directory'
+      chooser.title = _('Select Output Directory')
     end
   end
 
   def fonts_chooser
     @fonts_chooser ||= Gtk::FileDialog.new.tap do |chooser|
-      chooser.title = 'Open Font Files'
+      chooser.title = _('Open Font Files')
       chooser.filters = fonts_filters
     end
   end
@@ -439,7 +447,7 @@ class Window
     @fonts_filters ||= Gio::ListStore.new(Gtk::FileFilter).tap do |filters|
       filters.append(
         Gtk::FileFilter.new.tap do |filter|
-                  filter.name = 'OTF & TTF'
+                  filter.name = _('OTF & TTF')
                   filter.add_mime_type('font/otf')
                   filter.add_pattern('*.otf')
                   filter.add_mime_type('font/ttf')
@@ -519,13 +527,13 @@ class Window
         stack.add_titled_with_icon(
           info_scroller,
           'info',
-          'Information',
+          _('Information'),
           'completed-symbolic',
         )
         stack.add_titled_with_icon(
           log_page,
           'log',
-          'Logs',
+          _('Logs'),
           'view-list-bullet-symbolic',
         )
       end
@@ -727,7 +735,9 @@ class Window
   # The file dialogs raise on cancellation too, which is not worth a toast.
     def report_dismissable(error)
       unless error.message.to_s.match?(/dismiss|cancel/i)
-        toasts.add_toast(Adwaita::Toast.new("Error: #{error.message}."))
+        # Same msgid as loader.py:76 / lib/loader.rb's own error toast — one
+        # upstream message, reused here rather than minted again.
+        toasts.add_toast(Adwaita::Toast.new(_('Error: {error}.').sub('{error}', error.message.to_s)))
       end
     end
 

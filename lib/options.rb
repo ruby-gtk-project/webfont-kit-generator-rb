@@ -2,6 +2,7 @@
 
 require 'adwaita'
 require_relative 'settings'
+require_relative 'translatable'
 
 # UnicodeRanges parses the unicode-range syntax the custom subset entry
 # accepts: comma separated single hex values and hyphenated ranges, with or
@@ -59,6 +60,8 @@ end
 # made here is still made the next time the app starts, exactly as upstream's
 # Gio.Settings.bind does.
 class Options
+  include Translatable
+
   # Subset name => the unicode ranges it covers. These are Google Fonts'
   # ranges, copied from upstream's PRESET_RANGES.
   PRESET_RANGES = {
@@ -79,6 +82,9 @@ class Options
   RIGHT_SUBSETS = %w[latin-ext cyrillic-ext greek-ext devanagari].freeze
 
   # Row labels for the checkboxes, which are not just the key capitalised.
+  # This is a constant table read before any instance (and so any bound
+  # catalogue) exists, so the msgids are marked and translated where they are
+  # read instead — in `subset_action_row`, with `_()`.
   SUBSET_TITLES = {
     'latin'        => 'Latin',
     'latin-ext'    => 'Latin Extended',
@@ -91,7 +97,10 @@ class Options
   }.freeze
 
   # The font-display combo's rows. Row 0 means "emit no font-display at all",
-  # which is why it is a label and not a descriptor value.
+  # which is why it is a label and not a descriptor value. Only "Disabled" is
+  # an upstream msgid — the rest are CSS `font-display` values, not prose, and
+  # upstream leaves them untranslated too; see `font_display_row` for where
+  # "Disabled" is translated.
   FONT_DISPLAY = ['Disabled', 'auto', 'block', 'swap', 'fallback', 'optional'].freeze
 
   CUSTOM_PLACEHOLDER = '0021-007E,00E7,00EB,00C7,00CB'
@@ -188,7 +197,7 @@ class Options
 
   def formats_group
     @formats_group ||= Adwaita::PreferencesGroup.new.tap do |group|
-      group.title = 'Options'
+      group.title = _('Options')
     end
   end
 
@@ -196,7 +205,7 @@ class Options
 
   def css_group
     @css_group ||= Adwaita::PreferencesGroup.new.tap do |group|
-      group.title = 'CSS'
+      group.title = _('CSS')
     end
   end
 
@@ -205,8 +214,8 @@ class Options
 
   def subsetting_row
     @subsetting_row ||= Adwaita::ExpanderRow.new.tap do |row|
-      row.title = 'Subsetting'
-      row.subtitle = 'Limit the character set to reduce file size'
+      row.title = _('Subsetting')
+      row.subtitle = _('Limit the character set to reduce file size')
       row.show_enable_switch = true
       row.add_css_class('expander')
     end
@@ -258,14 +267,14 @@ class Options
   end
 
   def custom_label
-    @custom_label ||= Gtk::Label.new('Custom').tap do |label|
+    @custom_label ||= Gtk::Label.new(_('Custom')).tap do |label|
       label.halign = :start
     end
   end
 
   def custom_help
     @custom_help ||= Gtk::Label.new(
-      'Comma separated values. Single hex values and/or ranges separated with hyphens.',
+      _('Comma separated values. Single hex values and/or ranges separated with hyphens.'),
     ).tap do |label|
       label.wrap = true
       label.wrap_mode = :word
@@ -284,16 +293,16 @@ class Options
 
   def base64_row
     @base64_row ||= Adwaita::SwitchRow.new.tap do |row|
-      row.title = 'Base64 Encode'
-      row.subtitle = 'Embed fonts in the CSS'
+      row.title = _('Base64 Encode')
+      row.subtitle = _('Embed fonts in the CSS')
     end
   end
 
   def font_display_row
     @font_display_row ||= Adwaita::ComboRow.new.tap do |row|
-      row.title = 'Font display'
-      row.subtitle = 'The CSS font-display descriptor'
-      row.model = Gtk::StringList.new(FONT_DISPLAY)
+      row.title = _('Font display')
+      row.subtitle = _('The CSS font-display descriptor')
+      row.model = Gtk::StringList.new([_(FONT_DISPLAY.first), *FONT_DISPLAY.drop(1)])
     end
   end
 
@@ -352,7 +361,7 @@ class Options
     def subset_action_row(name)
       Adwaita::ActionRow.new.tap do |row|
         subset_checks.fetch(name).then do |check|
-          row.title = SUBSET_TITLES.fetch(name)
+          row.title = _(SUBSET_TITLES.fetch(name))
           row.activatable_widget = check
           row.add_suffix(check)
         end

@@ -1,0 +1,24 @@
+
+.sub-box row:not(:last-child){
+  border-bottom: 1px solid @borders;
+}
+.sub-left-box {
+  border-right: 1px solid @borders;
+}
+.expander revealer list row {
+  padding: 0;
+}
+
+.sourceview {
+  border: 1px solid @borders;
+  border-radius: 12px;
+  padding: 12px 0;
+}
+
+.log text {
+  background: @theme_bg_color;
+}
+
+.bottom-box > revealer > box {
+  padding: 12px;
+}

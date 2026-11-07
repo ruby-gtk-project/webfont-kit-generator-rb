@@ -42,6 +42,18 @@ def font_path
     abort('no sample font: set WEBFONT_SAMPLE_FONT to a .ttf')
 end
 
+# {selector => sorted declarations}, with whitespace, comments and
+# brace-placement collapsed away — what is left is the only thing a CSS diff
+# should care about.
+def parse_css(text)
+  text.gsub(%r{/\*.*?\*/}m, '').scan(/([^{}]+)\{([^{}]*)\}/m).to_h do |selector, body|
+    [
+      selector.strip.gsub(/\s+/, ' '),
+      body.split(';').map { |rule| rule.strip.gsub(/\s+/, ' ') }.reject(&:empty?).sort,
+    ]
+  end
+end
+
 application = WebfontKitGenerator::Application.new(settings: Settings.new(path: File.join(Dir.mktmpdir, 'settings.json')))
 
 GtkDriver.drive(application, shots: SHOTS) do |d, app|
@@ -93,7 +105,7 @@ GtkDriver.drive(application, shots: SHOTS) do |d, app|
   d.step('the shortcuts dialog is built') do
     shortcuts = window.call.instance_variable_get(:@shortcuts_window)
     d.check('a ShortcutsWindow was built') { !shortcuts.nil? }
-    d.check('it lists all four shortcuts') { shortcuts.general_section.n_items == 4 }
+    d.check('it lists all five shortcuts') { shortcuts.general_section.n_items == 5 }
     d.check('the dialog is visible') { shortcuts.dialog.visible? }
     shortcuts.dialog.close
   end
@@ -276,5 +288,18 @@ GtkDriver.drive(application, shots: SHOTS) do |d, app|
     d.check('back returns to the main page') { window.call.appstack.visible_child_name == 'main' }
     d.check('open is enabled again on the main page') { window.call.window.lookup_action('open').enabled? }
     d.check('set-dir is enabled again on the main page') { window.call.window.lookup_action('set-dir').enabled? }
+  end
+
+  # --- The stylesheet, diffed against upstream --------------------------------
+
+  # lib/style.rb was never diffed rule-by-rule against upstream's style.css;
+  # this normalises both to {selector => sorted declarations} (collapsing
+  # whitespace and brace-placement differences, which carry no meaning) and
+  # compares the two rule sets for equality.
+  d.step('lib/style.rb carries the same rules as upstream style.css') do
+    upstream_css = File.read(File.join(__dir__, 'fixtures', 'upstream-style.css'))
+    d.check('every upstream selector has a port rule with the same declarations') do
+      parse_css(upstream_css) == parse_css(Style::CSS)
+    end
   end
 end

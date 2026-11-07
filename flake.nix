@@ -27,6 +27,8 @@
           librsvg
           # The Google Fonts importer's HTTP client (soup3 gem).
           libsoup_3
+          # The generated-code preview (gtksourceview5 gem).
+          gtksourceview5
         ]
         # The Ruby `pkg-config` gem resolves `Requires.private` transitively and
         # hard-fails if any .pc in the chain is missing, so gtk4's whole private
@@ -89,6 +91,7 @@
           graphene1 = rubyGnomeGem;
           adwaita = rubyGnomeGem;
           rsvg2 = rubyGnomeGem;
+          gtksourceview5 = rubyGnomeGem;
         };
 
         # `makeSearchPath` would take each package's *first* output, and glib's

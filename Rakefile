@@ -170,3 +170,58 @@ rescue LoadError
     warn("NOTE: stone_checksums isn't installed, or is disabled for #{RUBY_VERSION} in the current environment")
   end
 end
+
+### TRANSLATION TASKS
+# kettle-jem:freeze
+# Reuses upstream's own `po/` catalogue (24 languages, see po/LINGUAS) under
+# upstream's own gettext domain ("webfontkitgenerator" — po/meson.build's
+# `i18n.gettext('webfontkitgenerator', ...)`), not a new one, so the
+# translations 24 languages already donated to this app keep working here.
+#
+# `GetText::Tools::Task` assumes a `po/<locale>/<domain>.po` layout; upstream
+# (and meson) ship the flat `po/<locale>.po` + `po/LINGUAS` layout instead, so
+# the mo-compile step is written directly against `GetText::Tools::MsgFmt`
+# rather than the Task helper, which would otherwise look in the wrong place
+# for every one of the 24 catalogues.
+#
+# `rake gettext:pot:create` re-extracts lib/**/*.rb into po/webfontkitgenerator.pot
+# (upstream's own extraction, from meson, still owns po/*.po itself —
+# `rmsgmerge` is run by hand against that fresh .pot when the message set
+# changes, never blind on every build).
+# `rake gettext:mo:update` compiles po/*.po into locale/<lang>/LC_MESSAGES/
+# webfontkitgenerator.mo, which lib/translatable.rb's `bindtextdomain` reads.
+begin
+  require "gettext/tools/msgfmt"
+  require "gettext/tools/xgettext"
+
+  desc("Compile po/*.po into locale/<lang>/LC_MESSAGES/webfontkitgenerator.mo")
+  task("gettext:mo:update") do
+    require "fileutils"
+
+    domain = "webfontkitgenerator"
+    (File.exist?("po/LINGUAS") ? File.read("po/LINGUAS").split : []).each do |locale|
+      po_file = "po/#{locale}.po"
+      if File.exist?(po_file)
+        mo_dir = "locale/#{locale}/LC_MESSAGES"
+        FileUtils.mkdir_p(mo_dir)
+        GetText::Tools::MsgFmt.run(po_file, "-o", "#{mo_dir}/#{domain}.mo")
+      end
+    end
+  end
+
+  desc("Re-extract lib/**/*.rb into po/webfontkitgenerator.pot")
+  task("gettext:pot:create") do
+    GetText::Tools::XGetText.run(
+      "--output",
+      "po/webfontkitgenerator.pot",
+      "--package-name",
+      "webfontkitgenerator",
+      "--add-comments=Translators:",
+      *Dir.glob("lib/**/*.rb"),
+      *Dir.glob("exe/*"),
+    )
+  end
+rescue LoadError
+  warn("NOTE: gettext isn't installed, or is disabled for #{RUBY_VERSION} in the current environment; gettext:pot:create and gettext:mo:update tasks are unavailable")
+end
+# kettle-jem:unfreeze

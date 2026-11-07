@@ -47,8 +47,11 @@ class Drive
       application.app.signal_connect('activate') { start }
       application.app.run([])
       unless @ok
+        total = @checks || 0
+        puts "#{@failed ? total - 1 : total} of #{total} checks passed"
         abort 'DRIVE FAILED'
       end
+      puts "#{@checks} of #{@checks} checks passed"
       puts "DRIVE OK — #{Dir.glob(File.join(out_dir, '**', '*')).length} files in #{out_dir}"
     end
   end
@@ -143,7 +146,26 @@ class Drive
       verify_stylesheet
       FORMATS.each { |extension| verify_font(extension) }
       verify_snippets
+      verify_log
     end
+
+    # lib/log.rb receives every line the generator appends during a real run
+    # (lib/generator.rb's `append_log`); nothing previously read the buffer
+    # back to confirm the lines, the bold/italic markup, or the ordering, so
+    # this component went unverified. `insert_markup` strips the <b>/<i> tags
+    # from the plain text, which is why the markup is checked through the
+    # line count and ordering instead of by re-finding the tags.
+    def verify_log
+      log_text.then do |lines|
+        check(lines.any? { |line| line.start_with?('Generating fonts for') }, 'the log has no "Generating fonts for" line')
+        check(lines.any? { |line| line.include?('glyphs.') }, 'the log has no per-file glyph-count line')
+        check(lines.include?('Generating CSS:'), 'the log has no "Generating CSS:" line')
+        check(lines.any? { |line| line.start_with?('Generated') && line.include?('.css.') }, 'the log has no CSS-written line')
+        check(lines.last == 'Generation finished!', 'the log does not end with "Generation finished!"')
+      end
+    end
+
+    def log_text = window.log.buffer.text.split("\n")
 
     # The snippets on the finished page are what the user copies into their
     # page, so they have to name the stylesheet that was actually written.
@@ -413,7 +435,9 @@ class Drive
     end
 
     def check(condition, message)
+      @checks = (@checks || 0) + 1
       unless condition
+        @failed = true
         raise message
       end
     end

@@ -1,0 +1,375 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the webfontkitgenerator package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: webfontkitgenerator\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-18 11:45-0500\n"
+"PO-Revision-Date: 2025-12-28 00:00+0000\n"
+"Last-Translator: Ettore Atalan <atalanttore@googlemail.com>\n"
+"Language-Team: German <https://hosted.weblate.org/projects/webfont-bundler/"
+"webfont-bundler/de/>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.15.1\n"
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:2
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:6
+#: webfontkitgenerator/main.py:37
+msgid "Webfont Bundler"
+msgstr "Webfont Bundler"
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:3
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:7
+msgid "Create @font-face kits easily"
+msgstr "Einfaches Erstellen von @font-face Paketen"
+
+#. Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+#: data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:10
+msgid "font;font-face;"
+msgstr ""
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:9
+#, fuzzy
+msgid ""
+"Webfont Bundler is a simple utility that allows you to generate woff, woff2 "
+"and the necessary CSS boilerplate from non-web font formats (otf and ttf)."
+msgstr ""
+"Webfont Kit Generator ist ein einfaches Dienstprogramm zum Erstellen von "
+"woff, woff2 Schriften inklusive erforderlicher CSS Eigenschaften aus otf und "
+"ttf Schriftformaten."
+
+#: data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:12
+msgid ""
+"Webfont Bundler also includes a tool to Download fonts from Google Fonts for "
+"self-hosting."
+msgstr ""
+
+#: webfontkitgenerator/window.blp:9 webfontkitgenerator/google.blp:28
+msgid "Import from Google Fonts"
+msgstr ""
+
+#: webfontkitgenerator/window.blp:18
+msgid "_Keyboard Shortcuts"
+msgstr ""
+
+#: webfontkitgenerator/window.blp:23
+#, fuzzy
+msgid "_About Webfont Bundler"
+msgstr "Webfont Kit Generator"
+
+#: webfontkitgenerator/window.blp:49 webfontkitgenerator/window.blp:104
+msgid "Open Fonts"
+msgstr "Schriften öffnen"
+
+#: webfontkitgenerator/window.blp:56
+msgid "Main Menu"
+msgstr ""
+
+#: webfontkitgenerator/window.blp:82
+msgid "Add some fonts"
+msgstr "Schriften hinzufügen"
+
+#: webfontkitgenerator/window.blp:175 webfontkitgenerator/window.py:61
+#, fuzzy
+msgid "Select Output Directory"
+msgstr "Ausgabeverzeichnis wählen"
+
+#: webfontkitgenerator/window.blp:186
+msgid "Browse..."
+msgstr "Durchsuchen …"
+
+#: webfontkitgenerator/window.blp:193
+msgid "Generate"
+msgstr "Erstellen"
+
+#: webfontkitgenerator/window.blp:221 webfontkitgenerator/google.blp:94
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: webfontkitgenerator/window.blp:248
+msgid "Back"
+msgstr ""
+
+#: webfontkitgenerator/window.blp:256
+msgid "Information"
+msgstr "Information"
+
+#: webfontkitgenerator/window.blp:263 webfontkitgenerator/generator.py:69
+msgid "Generation finished!"
+msgstr "Erstellung fertiggestellt!"
+
+#: webfontkitgenerator/window.blp:273
+msgid "To link your fonts, copy the code below into the head of your HTML:"
+msgstr ""
+"Um Schriften zu verknüpfen, kopiere folgenden Code in den Kopf der HTML-"
+"Datei:"
+
+#: webfontkitgenerator/window.blp:282
+msgid "Or import it directly to your CSS:"
+msgstr "Oder importiere ihn in die CSS Datei:"
+
+#: webfontkitgenerator/window.blp:291
+msgid "Open in Files"
+msgstr "In Dateien öffnen"
+
+#: webfontkitgenerator/window.blp:310
+msgid "Logs"
+msgstr "Protokolle"
+
+#: webfontkitgenerator/options.blp:7
+msgid "Options"
+msgstr "Optionen"
+
+#: webfontkitgenerator/options.blp:31
+msgid "Subsetting"
+msgstr "Untergruppen"
+
+#: webfontkitgenerator/options.blp:32
+msgid "Limit the character set to reduce file size"
+msgstr "Zeichensatz begrenzen, um Dateigröße zu verringern"
+
+#: webfontkitgenerator/options.blp:51
+msgid "Latin"
+msgstr "Lateinisch"
+
+#: webfontkitgenerator/options.blp:60
+msgid "Cyrillic"
+msgstr "Kyrillisch"
+
+#: webfontkitgenerator/options.blp:69
+msgid "Greek"
+msgstr "Griechisch"
+
+#: webfontkitgenerator/options.blp:78
+msgid "Vietnamese"
+msgstr "Vietnamesisch"
+
+#: webfontkitgenerator/options.blp:95
+msgid "Latin Extended"
+msgstr "Lateinisch, erweitert"
+
+#: webfontkitgenerator/options.blp:104
+msgid "Cyrillic Extended"
+msgstr "Kyrillisch, erweitert"
+
+#: webfontkitgenerator/options.blp:113
+msgid "Greek Extended"
+msgstr "Griechisch, erweitert"
+
+#: webfontkitgenerator/options.blp:122
+msgid "Devanagari"
+msgstr "Devanagari"
+
+#: webfontkitgenerator/options.blp:145
+msgid "Custom"
+msgstr "Benutzerdefiniert"
+
+#: webfontkitgenerator/options.blp:150
+msgid ""
+"Comma separated values. Single hex values and/or ranges separated with "
+"hyphens."
+msgstr ""
+"Komma getrennte Werte. Einzelne, mit Bindestrichen getrennte, sechsstellige "
+"Werte und/oder Bereiche."
+
+#: webfontkitgenerator/options.blp:173
+msgid "CSS"
+msgstr "CSS"
+
+#: webfontkitgenerator/options.blp:176
+msgid "Base64 Encode"
+msgstr ""
+
+#: webfontkitgenerator/options.blp:177
+msgid "Embed fonts in the CSS"
+msgstr ""
+
+#: webfontkitgenerator/options.blp:181
+msgid "Font display"
+msgstr "Schrift-Anzeige"
+
+#: webfontkitgenerator/options.blp:182
+msgid "The CSS font-display descriptor"
+msgstr "CSS-Eigenschaft „font-display“"
+
+#: webfontkitgenerator/options.blp:185
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+#: webfontkitgenerator/google.blp:29
+msgid "Download fonts from Google Fonts for self-hosting"
+msgstr ""
+
+#: webfontkitgenerator/google.blp:64
+msgid "Download Fonts"
+msgstr ""
+
+#: webfontkitgenerator/gtk/help-overlay.blp:11
+#, fuzzy
+msgctxt "shortcut window"
+msgid "General"
+msgstr "Erstellen"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:14
+msgctxt "shortcut window"
+msgid "Show Shortcuts"
+msgstr ""
+
+#: webfontkitgenerator/gtk/help-overlay.blp:19
+#, fuzzy
+msgctxt "shortcut window"
+msgid "Open Fonts"
+msgstr "Schriften öffnen"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:24
+#, fuzzy
+msgctxt "shortcut window"
+msgid "Select Output Directory"
+msgstr "Ausgabeverzeichnis wählen"
+
+#: webfontkitgenerator/gtk/help-overlay.blp:29
+msgctxt "shortcut window"
+msgid "Google Fonts Importer"
+msgstr ""
+
+#: webfontkitgenerator/gtk/help-overlay.blp:34
+#, fuzzy
+msgctxt "shortcut window"
+msgid "Generate"
+msgstr "Erstellen"
+
+#: webfontkitgenerator/main.py:76
+msgid "translator-credits"
+msgstr ""
+
+#: webfontkitgenerator/window.py:65
+#, fuzzy
+msgid "Open Font Files"
+msgstr "Schriftdateien öffnen"
+
+#: webfontkitgenerator/window.py:68
+msgid "OTF & TTF"
+msgstr "OTF und TTF"
+
+#: webfontkitgenerator/window.py:165
+#, fuzzy
+msgid "You don’t have write access to the selected directory."
+msgstr "Du hast keinen Schreibzugriff auf das ausgewählte Verzeichnis."
+
+#. name = data['name-slug']
+#: webfontkitgenerator/generator.py:79
+#, fuzzy, python-brace-format
+msgid "Generating fonts for {name}:"
+msgstr "Schriften werden erstellt für %s:"
+
+#: webfontkitgenerator/generator.py:81
+#, fuzzy, python-brace-format
+msgid "Generating {name}"
+msgstr "Erstellung der CSS-Datei:"
+
+#: webfontkitgenerator/generator.py:142
+#, python-brace-format
+msgid "Generated <i>{filename}</i> with <i>{count}</i> glyphs."
+msgstr "<i>{filename}</i> wurde erstellt mit <i>{count}</i> Glyphen."
+
+#: webfontkitgenerator/generator.py:156
+#, python-brace-format
+msgid "No glyphs where found for {range}. Skipping."
+msgstr "Für den Bereich {range} wurden keine Glyphen gefunden. Überspringen."
+
+#: webfontkitgenerator/generator.py:171
+msgid "Generating CSS:"
+msgstr "Erstellung der CSS-Datei:"
+
+#: webfontkitgenerator/generator.py:172
+msgid "Finishing"
+msgstr ""
+
+#: webfontkitgenerator/generator.py:193
+#, python-brace-format
+msgid "Generated <i>{filename}</i>."
+msgstr "Datei <i>{filename}</i> erstellt."
+
+#: webfontkitgenerator/generator.py:197
+msgid "There is no CSS to generate."
+msgstr "Es kann kein CSS generiert werden."
+
+#: webfontkitgenerator/google.py:91
+msgid "Loading Google Fonts Database"
+msgstr ""
+
+#: webfontkitgenerator/google.py:160
+msgid "Couldn’t download the Google Fonts data."
+msgstr ""
+
+#: webfontkitgenerator/google.py:191
+#, python-brace-format
+msgid "Couldn’t find the {variant} variant for {family_name}."
+msgstr ""
+
+#. If no family found, add error to list
+#: webfontkitgenerator/google.py:199
+#, python-brace-format
+msgid "Couldn’t find the {family_name} font family."
+msgstr ""
+
+#. If not files found at all, show general error and terminate
+#: webfontkitgenerator/google.py:208
+msgid "Couldn’t find any fonts for the given url."
+msgstr ""
+
+#: webfontkitgenerator/google.py:280
+msgid "Please set a valid url"
+msgstr ""
+
+#: webfontkitgenerator/google.py:308
+#, fuzzy, python-brace-format
+msgid "Downloading {name}"
+msgstr "Fehler beim Laden der Schrift"
+
+#: webfontkitgenerator/google.py:332
+#, python-brace-format
+msgid "Couldn’t download the font file for {name}."
+msgstr ""
+
+#: webfontkitgenerator/google.py:353
+#, python-brace-format
+msgid "Couldn’t write the font file for {name}."
+msgstr ""
+
+#: webfontkitgenerator/loader.py:67
+#, fuzzy, python-brace-format
+msgid "You don’t have read access to {font} or it doesn’t exists."
+msgstr ""
+"Du hast keinen Lesezugriff auf die Schrift {font} oder sie existiert nicht."
+
+#: webfontkitgenerator/loader.py:76
+#, python-brace-format
+msgid "Error: {error}."
+msgstr ""
+
+#~ msgid "Rafael Mardojai CM"
+#~ msgstr "Rafael Mardojai CM"
+
+#~ msgid "Fonts"
+#~ msgstr "Schriften"
+
+#~ msgid "Output directory"
+#~ msgstr "Ausgabeverzeichnis"
+
+#~ msgid "Select a directory"
+#~ msgstr "Verzeichnis auswählen"
+
+#~ msgid "Output directory error"
+#~ msgstr "Fehler im Ausgabeverzeichnis"
+
+#, python-brace-format
+#~ msgid "Something happened when trying to load {font}."
+#~ msgstr "Fehler beim Laden der Schrift {font}."

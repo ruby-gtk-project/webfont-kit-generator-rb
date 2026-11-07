@@ -10,6 +10,7 @@ require 'adwaita'
 require_relative 'font'
 require_relative 'loader'
 require_relative 'options'
+require_relative 'translatable'
 
 # Generator turns the window's loaded fonts into a webfont kit: one font file
 # per format per unicode range, a stylesheet per family declaring them, and
@@ -39,6 +40,8 @@ require_relative 'options'
 #     window owns that connection and forwards it to the generator it last
 #     started.
 class Generator
+  include Translatable
+
   # Raised for a font this port cannot take apart, or a compressor it cannot
   # reach. The log and a toast carry the message.
   class Error < StandardError; end
@@ -1210,7 +1213,7 @@ class Generator
 
     def finish(sheets)
       end_code(sheets)
-      append_log('Generation finished!', bold: true)
+      append_log(_('Generation finished!'), bold: true)
       @window.processing = false
       show('finished')
       on_main { @window.finished_stack.visible_child_name = 'info' }
@@ -1235,17 +1238,19 @@ class Generator
 
     def report(error)
       warn "Error generating fonts: #{error.message}"
-      append_log("Error: #{error.message}.", italic: true)
+      # Same msgid as loader.py:76 / lib/loader.rb's own error toast.
+      error_text = _('Error: {error}.').sub('{error}', error.message.to_s)
+      append_log(error_text, italic: true)
       @window.processing = false
       show('main')
-      on_main { @window.toasts.add_toast(Adwaita::Toast.new("Error: #{error.message}.")) }
+      on_main { @window.toasts.add_toast(Adwaita::Toast.new(error_text)) }
     end
 
     # --- One font -----------------------------------------------------------
 
     def generate_font(filename, data)
-      append_log(format('Generating fonts for %s:', data.name), bold: true)
-      set_progress_title(format('Generating %s', data.family))
+      append_log(_('Generating fonts for {name}:').sub('{name}', data.name), bold: true)
+      set_progress_title(_('Generating {name}').sub('{name}', data.family))
       Loader::Sfnt.new(File.binread(filename)).then do |sfnt|
         warn_unreducible(sfnt, data)
         subsets(sfnt).each do |char_range, subset|
@@ -1305,7 +1310,7 @@ class Generator
 
     def skip(name, char_range)
       step_done(formats.length)
-      append_log(format('No glyphs where found for %s. Skipping.', char_range || name), italic: true)
+      append_log(_('No glyphs where found for {range}. Skipping.').sub('{range}', char_range || name), italic: true)
     end
 
     def write_formats(work)
@@ -1322,11 +1327,9 @@ class Generator
     end
 
     def generated_text(work, filename)
-      format(
-        'Generated <i>%s</i> with <i>%d</i> glyphs.',
-        File.join(work.data.family_slug, filename),
-        work.subset.glyph_count,
-      )
+      _('Generated <i>{filename}</i> with <i>{count}</i> glyphs.')
+        .sub('{filename}', File.join(work.data.family_slug, filename))
+        .sub('{count}', work.subset.glyph_count.to_s)
     end
 
     def store(work, filename, extension)
@@ -1395,11 +1398,11 @@ class Generator
     end
 
     def generate_css
-      append_log('Generating CSS:', bold: true)
-      set_progress_title('Finishing')
+      append_log(_('Generating CSS:'), bold: true)
+      set_progress_title(_('Finishing'))
       @css.map { |family, subsets| write_sheet(family, sheet(subsets)) }.tap do |sheets|
         if sheets.empty?
-          append_log('There is no CSS to generate.', italic: true)
+          append_log(_('There is no CSS to generate.'), italic: true)
         end
       end
     end
@@ -1433,7 +1436,7 @@ class Generator
       "#{family}.css".then do |basename|
         write_file(family, basename, "#{css}\n")
         File.join(family, basename).then do |filename|
-          append_log(format('Generated <i>%s</i>.', filename))
+          append_log(_('Generated <i>{filename}</i>.').sub('{filename}', filename))
           filename
         end
       end

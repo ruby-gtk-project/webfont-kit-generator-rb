@@ -45,47 +45,50 @@ All 14 upstream units identified in the prior survey now have a corresponding
 row, menu, shortcuts, empty state, error state — is unaccounted for in
 `lib/`.
 
-## Known gaps inside otherwise-present components
+## Known gaps inside otherwise-present components — both closed this round
 
-These are not missing components; they are places the existing file admits
-(in its own comments) that it worked around a missing binding instead of
-using the released gem the fork is required to ship:
+Both of the dependency-wiring gaps this inventory previously flagged are now
+fixed, in the same pass:
 
-- **`lib/google_dialog.rb:39-40`** — "Upstream makes its requests with
-  libsoup 3; there are no Ruby bindings for libsoup and no Soup typelib in
-  this app's closure, so the two requests it makes ... [are hand-rolled]."
-  This fork's task brief requires `soup3` (provides `Soup`) as a mandatory
-  dependency. Checked and confirmed still true as of this survey:
-  `webfont-kit-generator-rb.gemspec` has no `add_dependency` lines at all
-  (not even `gtk4`/`adwaita`/`glib2`), `nix/Gemfile` lists only `adwaita` and
-  `gtk4`, and `flake.nix`'s `gtkStack` has no Soup/libsoup package, so no
-  Soup typelib reaches `GI_TYPELIB_PATH`. The comment's premise ("no Ruby
-  bindings for libsoup") is the thing this fork is meant to fix by wiring in
-  `soup3`, not a reason to keep the hand-rolled HTTP code.
-- **`lib/source_view.rb:12`** — "There are no Ruby bindings for
-  GtkSourceView 5 — `require 'gtksourceview5'` [fails/is unavailable]," so the
-  two code panes on the finished page likely degrade from highlighted
-  `GtkSource::View` to plain `Gtk::TextView`. `gtkStack` in `flake.nix` was
-  not checked for a GtkSourceView package in this pass beyond the Soup check
-  above; worth confirming in the same pass as the Soup fix, since both are
-  "typelib missing from gtkStack" issues of the same shape.
-
-Both are flagged for the dependency-wiring pass this fork is required to do
-(gemspec → `nix/Gemfile` → regenerated lock → `gtkStack`/`typelibPath` →
-prove with `require`), not for action in this survey step.
+- **`lib/google_dialog.rb`** — **closed.** `soup3` is in
+  `webfont-kit-generator-rb.gemspec` (`add_dependency("soup3", "~> 1.0")`),
+  `nix/Gemfile`, and `flake.nix`'s `gtkStack` (`libsoup_3`); the lock and
+  `nix/gemset.nix` were regenerated with `bundix`, and
+  `nix develop --command xvfb-run -a ruby -e 'require "soup3"; puts
+  Soup.constants.size'` loads the gem and typelib together. The dialog's two
+  HTTP requests go through `Soup::Session`/`Soup::Message`, not hand-rolled
+  code.
+- **`lib/source_view.rb`** — **closed.** The file's former claim ("There are
+  no Ruby bindings for GtkSourceView 5") was false — `gtksourceview5` is on
+  RubyGems — and is gone from the file along with the hand-rolled regex
+  highlighter it excused. `gtksourceview5` is now in the gemspec, the
+  `nix/Gemfile`, and `flake.nix`'s `gtkStack` (with a `gemConfig` entry so its
+  native extension actually builds against the typelib, the same way
+  `gdk4`/`gtk4`/`adwaita` already needed one). `SourceView` subclasses
+  `GtkSource::View` directly: a real `GtkSource::LanguageManager` picks the
+  "html"/"css" lexers, a real `GtkSource::StyleSchemeManager` supplies the
+  Adwaita/Adwaita-dark schemes upstream uses, and the line-number gutter a
+  plain `Gtk::TextView` could never draw now renders, because
+  `show_line_numbers` is a real `GtkSource::View` property.
+  `nix develop --command xvfb-run -a ruby -e 'require "gtksourceview5"; puts
+  GtkSource.constants.size'` loads it cleanly alongside `soup3` and `gtk4`
+  (one nixpkgs closure, no duplicate-GType registration).
 
 ## Non-components (unchanged from the prior survey)
 
 `webfontkitgenerator/webfontkitgenerator.gresource.xml`, `meson.build` ×3,
 `webfontkitgenerator.in`, `build-aux/*`, `debian/*`, `pyproject.toml`,
 `requirements.txt`, the `.desktop.in`/`.metainfo.xml.in`/`.service.in`
-templates, `brand/`, `webfont-kit-generator.doap`, `.transifex.yml`, and the
-25 `po/*.po` catalogues (`po/LINGUAS`) over the `webfontkitgenerator` gettext
-domain — translation parity is a separate skill's job, not this inventory's.
+templates, `brand/`, `webfont-kit-generator.doap`, and `.transifex.yml` —
+translation parity is a separate skill's job, not this inventory's, but is no
+longer a non-component either: `po/LINGUAS` and the 24 `po/*.po` catalogues
+over the `webfontkitgenerator` gettext domain are now copied into this fork
+verbatim and wired up via `lib/translatable.rb` — see
+`.reports/translation-parity.md` for what is and is not translated.
 
 ## Totals
 
 14 upstream components (13 source/blueprint-pair units plus the settings
-schema), all 14 present in `lib/` on `ruby`. Two components carry a recorded
-binding gap (Soup, GtkSourceView) rather than using this fork's mandatory
-gems.
+schema), all 14 present in `lib/` on `ruby`. The two components that carried a
+recorded binding gap (Soup, GtkSourceView) are now wired onto their mandatory
+gems instead of a hand-rolled substitute.

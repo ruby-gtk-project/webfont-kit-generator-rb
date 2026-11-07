@@ -102,6 +102,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency("gtk4", "~> 4.3")
   spec.add_dependency("adwaita", "~> 4.3")
   spec.add_dependency("soup3", "~> 1.0")
+  spec.add_dependency("gtksourceview5", "~> 4.4")
+  spec.add_dependency("gettext", "~> 3.5")
 
   # NOTE: It is preferable to list development dependencies in the gemspec due to increased
   #       visibility and discoverability.

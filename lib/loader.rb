@@ -2,6 +2,7 @@
 
 require 'adwaita'
 require_relative 'font'
+require_relative 'translatable'
 
 # Loader turns the files the user opened, dropped or imported from Google
 # Fonts into Font objects in the window's list model.
@@ -14,6 +15,7 @@ require_relative 'font'
 # below. Everything after that, including fontTools' name-table preference
 # order, is the same logic upstream runs.
 class Loader
+  include Translatable
   # Style name => CSS font-weight, as upstream's WEIGHTS.
   WEIGHTS = {
     'thin'       => '100',
@@ -271,13 +273,13 @@ class Loader
           # main thread in both ports, so appending directly is the same thing.
           @model.append(Font.new(path, font_data(Sfnt.new(File.binread(path)))))
         else
-          show_error("You don’t have read access to #{path} or it doesn’t exists.")
+          show_error(_('You don’t have read access to {font} or it doesn’t exists.').sub('{font}', path))
         end
       end
     rescue StandardError => e
       warn "Error loading #{file.path}"
       warn e.message
-      show_error("Error: #{e.message}.")
+      show_error(_('Error: {error}.').sub('{error}', e.message.to_s))
     end
 
   # Gio hands back percent-encoded paths for files that came from a URI, which

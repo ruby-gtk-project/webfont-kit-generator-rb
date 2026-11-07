@@ -5,6 +5,7 @@ require 'adwaita'
 
 require_relative '../settings'
 require_relative '../style'
+require_relative '../translatable'
 require_relative '../window'
 
 module WebfontKitGenerator
@@ -23,10 +24,13 @@ module WebfontKitGenerator
   # method, all configuration lives in its `tap`, assembly happens only in
   # `build`, and the launcher is one expression.
   class Application
+    include Translatable
+
     APP_ID = 'org.rubygtkproject.WebfontKitGenerator'
 
     # Upstream's name for the app, which is what GLib.set_application_name sets
-    # and the window title shows.
+    # and the window title shows. Upstream marks it with `_()` in
+    # `main.py:37`; here it is translated where it is read, in `build`.
     APP_NAME = 'Webfont Bundler'
 
     VERSION = '0.1.0'
@@ -38,6 +42,7 @@ module WebfontKitGenerator
       'open'              => ['<Control>o'],
       'google'            => ['<Control>g'],
       'set-dir'           => ['<Control>d'],
+      'generate'          => ['<Control>Return'],
       'back'              => ['Escape'],
       'show-help-overlay' => ['<Control>question'],
     }.freeze
@@ -56,7 +61,7 @@ module WebfontKitGenerator
 
     def build
       app.tap do
-        GLib.application_name = APP_NAME
+        GLib.application_name = _(APP_NAME)
 
         app.signal_connect('activate') do
           register_icons
@@ -110,14 +115,20 @@ module WebfontKitGenerator
     # resource bundle, so the same fields are set directly.
       def show_about
         Adwaita::AboutDialog.new.tap do |dialog|
-          dialog.application_name = APP_NAME
+          dialog.application_name = _(APP_NAME)
           dialog.application_icon = APP_ID
           dialog.version = VERSION
           dialog.developer_name = 'Rafael Mardojai CM'
           dialog.license_type = Gtk::License::GPL_3_0
           dialog.website = 'https://github.com/rafaelmardojai/webfont-kit-generator'
           dialog.issue_url = 'https://github.com/ruby-gtk-project/webfont-kit-generator-rb/issues'
-          dialog.comments = 'Generate woff2 and woff webfont kits from otf and ttf fonts.'
+          # Upstream's metainfo description, from
+          # `data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:9`.
+          dialog.comments = _(
+            'Webfont Bundler is a simple utility that allows you to generate woff, woff2 ' \
+            'and the necessary CSS boilerplate from non-web font formats (otf and ttf).',
+          )
+          dialog.translator_credits = _('translator-credits')
           dialog.present(window.window)
         end
       end

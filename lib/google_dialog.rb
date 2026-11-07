@@ -7,6 +7,7 @@ require 'gio2'
 require 'json'
 require 'soup3'
 require 'uri'
+require_relative 'translatable'
 
 # GoogleFont is one entry of the Google Fonts API's font list. Only `family`
 # and `files` are read, but the whole record is kept so the cached database
@@ -45,6 +46,8 @@ GoogleFontInfo = Data.define(:name, :variants)
 # the saved ETag goes out as If-None-Match, and a 304 means the cached
 # database on disk is still current.
 class GoogleDialog
+  include Translatable
+
   API_URL = 'https://www.googleapis.com/webfonts/v1/webfonts?key=%s'
   USER_AGENT = 'Webfont Bundler'
 
@@ -151,8 +154,8 @@ class GoogleDialog
   def main_page
     @main_page ||= Adwaita::StatusPage.new.tap do |page|
       page.icon_name = 'font-x-generic-symbolic'
-      page.title = 'Import from Google Fonts'
-      page.description = 'Download fonts from Google Fonts for self-hosting'
+      page.title = _('Import from Google Fonts')
+      page.description = _('Download fonts from Google Fonts for self-hosting')
     end
   end
 
@@ -192,7 +195,7 @@ class GoogleDialog
   end
 
   def download_button
-    @download_button ||= Gtk::Button.new(label: 'Download Fonts').tap do |button|
+    @download_button ||= Gtk::Button.new(label: _('Download Fonts')).tap do |button|
       button.sensitive = false
       button.halign = :center
       button.add_css_class('suggested-action')
@@ -215,7 +218,7 @@ class GoogleDialog
   end
 
   def cancel_button
-    @cancel_button ||= Gtk::Button.new(label: 'Cancel').tap do |button|
+    @cancel_button ||= Gtk::Button.new(label: _('Cancel')).tap do |button|
       button.halign = :center
       button.add_css_class('pill')
     end
@@ -322,7 +325,7 @@ class GoogleDialog
     def invalid_url
       url_entry.add_css_class('error')
       download_button.sensitive = false
-      error_label.text = 'Please set a valid url'
+      error_label.text = _('Please set a valid url')
       error_revealer.reveal_child = true
     end
 
@@ -432,7 +435,7 @@ class GoogleDialog
     def load_fonts_data
       stack.visible_child_name = 'loading'
       progressbar.text = ''
-      loading_page.title = 'Loading Google Fonts Database'
+      loading_page.title = _('Loading Google Fonts Database')
       @running = true
       GLib::Timeout.add(PROGRESS_INTERVAL) { step_progressbar }
 
@@ -462,7 +465,7 @@ class GoogleDialog
       end
     rescue GLib::Error => e
       warn "Google Fonts request failed: #{e.message}"
-      fail_with('Couldn’t download the Google Fonts data.')
+      fail_with(_('Couldn’t download the Google Fonts data.'))
     end
 
     def store_database(bytes, response_headers)
@@ -484,7 +487,7 @@ class GoogleDialog
       if local_data_exists?
         find_on_data(nil)
       else
-        fail_with('Couldn’t download the Google Fonts data.')
+        fail_with(_('Couldn’t download the Google Fonts data.'))
       end
     end
 
@@ -501,7 +504,7 @@ class GoogleDialog
           if files.any?
             download_files(files)
           else
-            @errors = ['Couldn’t find any fonts for the given url.']
+            @errors = [_('Couldn’t find any fonts for the given url.')]
             terminate_dialog
           end
         end
@@ -516,7 +519,7 @@ class GoogleDialog
           if found
             variant_files(family, found)
           else
-            @errors << "Couldn’t find the #{family.name} font family."
+            @errors << _('Couldn’t find the {family_name} font family.').sub('{family_name}', family.name)
             []
           end
         end
@@ -529,7 +532,8 @@ class GoogleDialog
           if url
             [family.name, "#{family.name} #{variant}", url]
           else
-            @errors << "Couldn’t find the #{variant} variant for #{family.name}."
+            @errors << _('Couldn’t find the {variant} variant for {family_name}.')
+              .sub('{variant}', variant).sub('{family_name}', family.name)
             nil
           end
         end
@@ -547,7 +551,7 @@ class GoogleDialog
 
     def download_file(family, name, url)
       unless @cancelled
-        loading_page.title = "Downloading #{family}"
+        loading_page.title = _('Downloading {name}').sub('{name}', family)
         session.send_and_read_async(Soup::Message.new('GET', url), 0, @cancellable) do |soup_session, result|
           on_font_downloaded(soup_session, result, name)
         end
@@ -558,7 +562,7 @@ class GoogleDialog
       write_font(name, soup_session.send_and_read_finish(result))
     rescue GLib::Error => e
       warn "Could not download the font file for #{name}: #{e.message}"
-      @errors << "Couldn’t download the font file for #{name}."
+      @errors << _('Couldn’t download the font file for {name}.').sub('{name}', name)
     ensure
       @pending -= 1
       if @pending.zero?
@@ -573,7 +577,7 @@ class GoogleDialog
       end
     rescue StandardError => e
       warn "Could not write the font file for #{name}: #{e.message}"
-      @errors << "Couldn’t write the font file for #{name}."
+      @errors << _('Couldn’t write the font file for {name}.').sub('{name}', name)
     end
 
   # --- Finishing ----------------------------------------------------------

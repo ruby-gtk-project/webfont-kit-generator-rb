@@ -1,0 +1,8 @@
+lib/webfont_kit_generator/application.rb
+lib/window.rb
+lib/options.rb
+lib/google_dialog.rb
+lib/generator.rb
+lib/loader.rb
+lib/font_row.rb
+lib/shortcuts_window.rb
