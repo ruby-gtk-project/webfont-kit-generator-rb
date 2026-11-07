@@ -82,19 +82,29 @@ class Options
   RIGHT_SUBSETS = %w[latin-ext cyrillic-ext greek-ext devanagari].freeze
 
   # Row labels for the checkboxes, which are not just the key capitalised.
-  # This is a constant table read before any instance (and so any bound
-  # catalogue) exists, so the msgids are marked and translated where they are
-  # read instead — in `subset_action_row`, with `_()`.
-  SUBSET_TITLES = {
-    'latin'        => 'Latin',
-    'latin-ext'    => 'Latin Extended',
-    'cyrillic'     => 'Cyrillic',
-    'cyrillic-ext' => 'Cyrillic Extended',
-    'greek'        => 'Greek',
-    'greek-ext'    => 'Greek Extended',
-    'vietnamese'   => 'Vietnamese',
-    'devanagari'   => 'Devanagari',
-  }.freeze
+  # This used to be a constant table looked up with `_(SUBSET_TITLES.fetch
+  # (name))` in `subset_action_row` — a non-literal `_()` argument that
+  # xgettext cannot see, since it can only extract a literal string passed
+  # directly to `_()`. `translated_subset_title` below marks each one with
+  # its own literal `_()` call instead; `LEFT_SUBSETS`/`RIGHT_SUBSETS` above
+  # stay the ordered key lists it is called with.
+  #
+  # Each `when` is a literal `_()` call xgettext can see; the `name` it
+  # switches on is not translated itself, only used to pick which literal to
+  # translate.
+  def self.translated_subset_title(name)
+    case name
+    when 'latin' then _('Latin')
+    when 'latin-ext' then _('Latin Extended')
+    when 'cyrillic' then _('Cyrillic')
+    when 'cyrillic-ext' then _('Cyrillic Extended')
+    when 'greek' then _('Greek')
+    when 'greek-ext' then _('Greek Extended')
+    when 'vietnamese' then _('Vietnamese')
+    when 'devanagari' then _('Devanagari')
+    else raise ArgumentError, "Unknown subset: #{name}"
+    end
+  end
 
   # The font-display combo's rows. Row 0 means "emit no font-display at all",
   # which is why it is a label and not a descriptor value. Only "Disabled" is
@@ -302,7 +312,9 @@ class Options
     @font_display_row ||= Adwaita::ComboRow.new.tap do |row|
       row.title = _('Font display')
       row.subtitle = _('The CSS font-display descriptor')
-      row.model = Gtk::StringList.new([_(FONT_DISPLAY.first), *FONT_DISPLAY.drop(1)])
+      # A literal `_()` argument, not `_(FONT_DISPLAY.first)`: xgettext can
+      # only see a literal string passed directly to `_()`.
+      row.model = Gtk::StringList.new([_('Disabled'), *FONT_DISPLAY.drop(1)])
     end
   end
 
@@ -361,7 +373,7 @@ class Options
     def subset_action_row(name)
       Adwaita::ActionRow.new.tap do |row|
         subset_checks.fetch(name).then do |check|
-          row.title = _(SUBSET_TITLES.fetch(name))
+          row.title = Options.translated_subset_title(name)
           row.activatable_widget = check
           row.add_suffix(check)
         end

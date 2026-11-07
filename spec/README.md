@@ -4,6 +4,20 @@ This project uses `kettle-test` as its RSpec harness. The generated
 `spec/spec_helper.rb` requires `kettle/test/rspec`, which installs the shared
 test configuration and helper APIs used throughout the suite.
 
+`spec_helper.rb` requires `webfont_kit_generator`, which requires `gtk4` at
+its top — the same as `exe/webfont-kit-generator` and `test/drive_*.rb` — so
+the suite needs a display the same way they do. From the dev shell:
+
+```
+xvfb-run -a ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(["--format", "progress", "--require", "spec_helper", "spec"])'
+```
+
+The examples under `spec/*_spec.rb` are unit-level coverage of `lib/font.rb`,
+`lib/options.rb`'s `UnicodeRanges`/subset tables, and `lib/generator.rb`'s
+`Subset`/`Tables`/`Woff`/`Woff2`/`Brotli` — the pieces
+`test/drive_window.rb` and `test/drive_generator.rb` only ever exercise
+indirectly, through a whole built window or a whole threaded generation run.
+
 ## Harness Helpers
 
 These helpers are available in specs after `spec/spec_helper.rb` loads:

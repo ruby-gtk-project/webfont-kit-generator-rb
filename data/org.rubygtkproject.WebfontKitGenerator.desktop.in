@@ -1,0 +1,16 @@
+[Desktop Entry]
+# Ported from upstream's data/com.rafaelmardojai.WebfontKitGenerator.desktop.in,
+# with this port's own app id and exe name (lib/webfont_kit_generator/application.rb's
+# APP_ID, webfont-kit-generator-rb.gemspec's spec.executables).
+Name=Webfont Bundler
+Comment=Create @font-face kits easily
+Exec=webfont-kit-generator %U
+Icon=org.rubygtkproject.WebfontKitGenerator
+Terminal=false
+Type=Application
+Categories=Utility;GTK;
+# Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+Keywords=font;font-face;
+StartupNotify=true
+DBusActivatable=true
+MimeType=font/otf;font/ttf;

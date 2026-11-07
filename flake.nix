@@ -228,10 +228,34 @@
             export WEBFONT_SAMPLE_FONT="${sampleFont}"
             [ -d data/schemas ] && export GSETTINGS_SCHEMA_DIR="$PWD/data/schemas"
             unset BUNDLE_GEMFILE BUNDLE_FROZEN
+            # locale/ is gitignored, so a fresh clone has nothing for
+            # lib/translatable.rb's bindtextdomain to find until this runs;
+            # compiling it here, every shell entry, is what keeps non-English
+            # locales working without anyone remembering to run `rake
+            # gettext:mo:update` (same logic, inlined so it needs only the
+            # `gettext` runtime gem already in this shell, not a Rakefile
+            # dependency chain) by hand first.
+            ruby -e '
+              require "gettext/tools/msgfmt"
+              require "fileutils"
+              domain = "webfontkitgenerator"
+              linguas = File.exist?("po/LINGUAS") ? File.read("po/LINGUAS").split : []
+              linguas.each do |locale|
+                po_file = "po/#{locale}.po"
+                next unless File.exist?(po_file)
+                mo_dir = "locale/#{locale}/LC_MESSAGES"
+                FileUtils.mkdir_p(mo_dir)
+                GetText::Tools::MsgFmt.run(po_file, "-o", "#{mo_dir}/#{domain}.mo")
+              end
+            ' >/dev/null 2>&1
             echo "webfont-kit-generator devshell — ruby $(ruby -e 'print RUBY_VERSION')"
             echo "run the app:   xvfb-run ruby exe/webfont-kit-generator"
             echo "drive the app: xvfb-run ruby test/drive_*.rb"
-            echo "run the specs: ruby -e 'require \"rspec/core\"; exit RSpec::Core::Runner.run([\"--format\", \"progress\", \"--require\", \"spec_helper\", \"spec\"])'"
+            # spec_helper requires webfont_kit_generator, which requires
+            # gtk4 at the top, so the specs need the same xvfb display the
+            # app and the drive scripts do — a bare `ruby -e ...` here
+            # raises Gtk::InitError before a single example loads.
+            echo "run the specs: xvfb-run -a ruby -e 'require \"rspec/core\"; exit RSpec::Core::Runner.run([\"--format\", \"progress\", \"--require\", \"spec_helper\", \"spec\"])'"
           '';
         };
       });

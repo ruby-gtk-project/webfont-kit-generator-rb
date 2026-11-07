@@ -78,7 +78,14 @@ Gem::Specification.new do |spec|
     *enumerate_package_files.call("exe"),
     # Extra package files configured by .structuredmerge/kettle-jem.yml
     *enumerate_package_glob.call(File.join(gemspec_root, "data/**/*")),
-    *enumerate_package_glob.call(File.join(gemspec_root, "po/**/*"))
+    *enumerate_package_glob.call(File.join(gemspec_root, "po/**/*")),
+    # locale/*/LC_MESSAGES/*.mo is what lib/translatable.rb's bindtextdomain
+    # reads at runtime; it is gitignored (compiled from po/*.po by `rake
+    # gettext:mo:update`, wired into `rake build` in the Rakefile) so an
+    # installed release gem does not ship po/*.po with no compiled catalogue
+    # to go with it — every non-English locale would otherwise silently fall
+    # back to English.
+    *enumerate_package_glob.call(File.join(gemspec_root, "locale/**/*"))
   ]
   spec.rdoc_options += [
     "--title",

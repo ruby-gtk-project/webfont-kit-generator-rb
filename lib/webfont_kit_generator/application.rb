@@ -28,11 +28,6 @@ module WebfontKitGenerator
 
     APP_ID = 'org.rubygtkproject.WebfontKitGenerator'
 
-    # Upstream's name for the app, which is what GLib.set_application_name sets
-    # and the window title shows. Upstream marks it with `_()` in
-    # `main.py:37`; here it is translated where it is read, in `build`.
-    APP_NAME = 'Webfont Bundler'
-
     VERSION = '0.1.0'
 
     # Window action => accelerators, as main.py's setup_actions binds them.
@@ -61,7 +56,12 @@ module WebfontKitGenerator
 
     def build
       app.tap do
-        GLib.application_name = _(APP_NAME)
+        # A literal `_()` argument, not a constant: xgettext can only see a
+        # literal string passed to `_()`. The old `APP_NAME` constant made
+        # this msgid invisible to extraction even though it is shown twice
+        # (here and in `show_about` below) — both call sites now mark the
+        # same literal directly.
+        GLib.application_name = _('Webfont Bundler')
 
         app.signal_connect('activate') do
           register_icons
@@ -115,7 +115,7 @@ module WebfontKitGenerator
     # resource bundle, so the same fields are set directly.
       def show_about
         Adwaita::AboutDialog.new.tap do |dialog|
-          dialog.application_name = _(APP_NAME)
+          dialog.application_name = _('Webfont Bundler')
           dialog.application_icon = APP_ID
           dialog.version = VERSION
           dialog.developer_name = 'Rafael Mardojai CM'

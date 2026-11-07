@@ -193,6 +193,7 @@ end
 begin
   require "gettext/tools/msgfmt"
   require "gettext/tools/xgettext"
+  require_relative "po/extractors"
 
   desc("Compile po/*.po into locale/<lang>/LC_MESSAGES/webfontkitgenerator.mo")
   task("gettext:mo:update") do
@@ -209,8 +210,24 @@ begin
     end
   end
 
-  desc("Re-extract lib/**/*.rb into po/webfontkitgenerator.pot")
+  # A fresh clone has no locale/ at all until this runs, and `bundler/
+  # gem_tasks`'s `build` task packages the gemspec's files as they are on
+  # disk — so without this dependency a built gem, like a fresh dev shell,
+  # would ship po/*.po but no compiled locale/*/LC_MESSAGES/*.mo at all,
+  # and every non-English locale would silently fall back to English.
+  task(build: "gettext:mo:update") if Rake::Task.task_defined?("build")
+
+  desc("Re-extract lib/**/*.rb, exe/*, and the desktop/metainfo files into po/webfontkitgenerator.pot")
   task("gettext:pot:create") do
+    # The Ruby gettext gem's XGetText ships parsers for "ruby", "erb",
+    # "gtk_builder_ui_definitions" and "glade" only — nothing for a
+    # `.desktop.in` or `.metainfo.xml.in` file, so without registering
+    # these two, data/*.desktop.in and data/*.metainfo.xml.in would sit in
+    # the file list below and still contribute nothing: `target?` would
+    # return false for either on every one of the built-in parsers.
+    GetText::Tools::XGetText.add_parser(WebfontKitGenerator::Gettext::DesktopParser)
+    GetText::Tools::XGetText.add_parser(WebfontKitGenerator::Gettext::MetainfoParser)
+
     GetText::Tools::XGetText.run(
       "--output",
       "po/webfontkitgenerator.pot",
@@ -219,6 +236,8 @@ begin
       "--add-comments=Translators:",
       *Dir.glob("lib/**/*.rb"),
       *Dir.glob("exe/*"),
+      *Dir.glob("data/*.desktop.in"),
+      *Dir.glob("data/*.metainfo.xml.in"),
     )
   end
 rescue LoadError

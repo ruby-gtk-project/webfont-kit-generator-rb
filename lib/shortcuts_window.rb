@@ -64,5 +64,20 @@ class ShortcutsWindow
   # `new` raises advertises the signatures as "title: utf8, accelerator: utf8".
     def item(title, accelerator) = Adwaita::ShortcutsItem.new(title, accelerator)
 
-    def shortcut_title(title) = p_('shortcut window', title)
+    # Each `when` is a literal `p_()` call xgettext can see; the loop that
+    # calls this (over `SHORTCUTS`' keys, plus `general_section`'s 'General')
+    # passes a non-literal `title`, which the previous `p_('shortcut window',
+    # title)` form hid from extraction entirely — xgettext can only see a
+    # literal string argument, never a local variable.
+    def shortcut_title(title)
+      case title
+      when 'General' then p_('shortcut window', 'General')
+      when 'Show Shortcuts' then p_('shortcut window', 'Show Shortcuts')
+      when 'Open Fonts' then p_('shortcut window', 'Open Fonts')
+      when 'Select Output Directory' then p_('shortcut window', 'Select Output Directory')
+      when 'Google Fonts Importer' then p_('shortcut window', 'Google Fonts Importer')
+      when 'Generate' then p_('shortcut window', 'Generate')
+      else raise ArgumentError, "Unknown shortcut title: #{title}"
+      end
+    end
 end

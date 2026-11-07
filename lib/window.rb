@@ -27,8 +27,6 @@ require_relative 'translatable'
 class Window
   include Translatable
 
-  TITLE = 'Webfont Bundler'
-
   # Window actions, in the order upstream's setup_actions creates them, minus
   # the parameterised `remove-font` which is built on its own. The
   # accelerators are installed by the application, which is where upstream
@@ -121,7 +119,12 @@ class Window
 
   def window
     @window ||= Gtk::ApplicationWindow.new(@app).tap do |win|
-      win.title = _(TITLE)
+      # A literal `_()` argument, not the old `TITLE` constant: xgettext can
+      # only see a literal string passed to `_()`, not one reached through a
+      # constant, so the same msgid as `Application::APP_NAME`'s two call
+      # sites is marked again here, literally, rather than shared through a
+      # constant that would make it invisible to extraction.
+      win.title = _('Webfont Bundler')
       win.set_default_size(1000, 600)
     end
   end

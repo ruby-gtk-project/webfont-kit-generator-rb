@@ -6,3 +6,5 @@ lib/generator.rb
 lib/loader.rb
 lib/font_row.rb
 lib/shortcuts_window.rb
+data/org.rubygtkproject.WebfontKitGenerator.desktop.in
+data/org.rubygtkproject.WebfontKitGenerator.metainfo.xml.in

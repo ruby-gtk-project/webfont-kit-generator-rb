@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ported from upstream's data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in,
+  with this port's own app id (lib/webfont_kit_generator/application.rb's APP_ID)
+  and project URLs. The two <p> paragraphs are kept as two separate msgids,
+  matching upstream, because lib/webfont_kit_generator/application.rb's
+  show_about joins them the same way for the About dialog's description.
+-->
+<component type="desktop-application">
+	<id>org.rubygtkproject.WebfontKitGenerator</id>
+	<metadata_license>CC0-1.0</metadata_license>
+	<project_license>GPL-3.0-or-later</project_license>
+	<name>Webfont Bundler</name>
+	<summary>Create @font-face kits easily</summary>
+	<description>
+		<p>
+			Webfont Bundler is a simple utility that allows you to generate woff, woff2 and the necessary CSS boilerplate from non-web font formats (otf and ttf).
+		</p>
+		<p>
+			Webfont Bundler also includes a tool to Download fonts from Google Fonts for self-hosting.
+		</p>
+	</description>
+	<url type="homepage">https://github.com/ruby-gtk-project/webfont-kit-generator-rb</url>
+	<url type="vcs-browser">https://github.com/ruby-gtk-project/webfont-kit-generator-rb</url>
+	<url type="bugtracker">https://github.com/ruby-gtk-project/webfont-kit-generator-rb/issues</url>
+	<developer_name translate="no">ruby-gtk-project</developer_name>
+	<developer id="org.rubygtkproject">
+		<name translate="no">ruby-gtk-project</name>
+	</developer>
+	<content_rating type="oars-1.1" />
+	<launchable type="desktop-id">org.rubygtkproject.WebfontKitGenerator.desktop</launchable>
+	<translation type="gettext">webfontkitgenerator</translation>
+</component>
