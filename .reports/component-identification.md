@@ -1,115 +1,90 @@
-# Component identification — webfont-kit-generator
+# Component identification — webfont-kit-generator-rb
 
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `58977cad7eea5ffff0c174d764fd3946bb9ad598` |
+| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
 
-This restates `.reports/component-inventory.md` (written during the port
-itself) as this audit's independent identification pass, and adds what that
-pass did not check: accelerators, the shortcuts dialog's content, and the
-`po/` catalogue as a component in its own right.
+Upstream has no `.ui`/`.blp`-free widgets of consequence — every window and
+dialog is declared in blueprint and backed by a `.py` class. That gives a
+reliable file-to-file join. Unit boundaries below are one upstream
+`.py`+`.blp` pair (or `.py` alone) mapped to one `lib/*.rb` file, read in the
+order a user meets them.
 
-## Declarative UI
+## Window — `webfontkitgenerator/window.py` + `window.blp` → `lib/window.rb`
 
-Upstream ships two `.blp` files and nothing else declarative:
+Top-level `Adw.ApplicationWindow` (`Gtk::ApplicationWindow` in the port —
+`Adwaita::ApplicationWindow` is broken in the Ruby bindings, documented at
+`lib/window.rb:23-26`). Contains:
 
-- `webfontkitgenerator/window.blp` — the main window's template root
-  (`template $WebfontKitGeneratorWindow: Adw.ApplicationWindow`), the
-  `app-menu` menu model, and the options/fonts/finished stack pages.
-- `webfontkitgenerator/google.blp` — the Google Fonts importer dialog.
-- `webfontkitgenerator/options.blp` — the preferences sidebar.
-- `webfontkitgenerator/gtk/help-overlay.blp` — a standalone
-  `ShortcutsWindow help_overlay { }` named root with **no backing source
-  file** (per `component-identification`'s scope rule, this is its own unit).
+- `Gtk.Stack appstack` (main / progress / finished) — ported 1:1, same page names.
+- Main page: `HeaderBar` (add-fonts button, menu button + `app-menu`
+  `Gio::Menu` with the Google-import and help sections), `Adw.OverlaySplitView`
+  holding the fonts `Gtk.Stack` (empty / fonts pages, each widget and CSS
+  class reproduced, `lib/window.rb:212-271`) and the `Options` sidebar, and the
+  bottom `Gtk.ActionBar` (directory label, Browse, Generate).
+- Progress page: `Adw.StatusPage` → `ProgressBar` + Cancel button.
+- Finished page: `Adw.ToolbarView` with a `HeaderBar`+`Adw.ViewSwitcher`,
+  `Adw.ViewStack` with an Info page (two `$SourceView`s, Open-in-Files button)
+  and a Log page (`$Log`).
+- Window actions: `set-dir`, `open`, `google`, `generate`, `back`,
+  `show-help-overlay`, `remove-font` (parameterised) — all seven present in
+  `Window::ACTIONS` + `remove_font_action` (`lib/window.rb:36,590-611`),
+  matching upstream's `setup_actions` in `window.py`.
+- `Gtk.DropTarget` for file drag-and-drop onto the main page.
 
-The port has no `.blp`/`.ui` files, by house style; all five map to Ruby
-files built with memoized accessors.
+## Options sidebar — `webfontkitgenerator/options.py` + `options.blp` → `lib/options.rb`
 
-## File mapping (one upstream unit → one port file, with one exception)
+`Adw.PreferencesPage`-shaped sidebar: Options group (format checkboxes),
+Subsetting switch + two-column range checkboxes (Latin/Latin-Ext,
+Cyrillic/Cyrillic-Ext, Greek/Greek-Ext, Vietnamese/Devanagari, plus a custom
+range entry), CSS group (Base64 switch, font-display dropdown).
 
-| Upstream file(s) | → `lib/` path |
-|---|---|
-| `webfontkitgenerator/main.py` | `lib/webfont_kit_generator/application.rb` |
-| `webfontkitgenerator/window.blp` + `window.py` | `lib/window.rb` |
-| `webfontkitgenerator/gtk/help-overlay.blp` | `lib/shortcuts_window.rb` |
-| `webfontkitgenerator/options.blp` + `options.py` | `lib/options.rb` |
-| `webfontkitgenerator/google.blp` + `google.py` | `lib/google_dialog.rb` |
-| `webfontkitgenerator/font.py` (`FontData`, `Font`) | `lib/font.rb` |
-| `webfontkitgenerator/font.py` (`FontRow`) | `lib/font_row.rb` |
-| `webfontkitgenerator/log.py` | `lib/log.rb` |
-| `webfontkitgenerator/sourceview.py` | `lib/source_view.rb` |
-| `webfontkitgenerator/loader.py` | `lib/loader.rb` |
-| `webfontkitgenerator/generator.py` | `lib/generator.rb` |
-| `webfontkitgenerator/style.css` | `lib/style.rb` |
-| `data/com.rafaelmardojai.WebfontKitGenerator.gschema.xml` | `lib/settings.rb` |
-| **`po/*.po` (24 files) + `po/webfontkitgenerator.pot`** | **no port file — see `.reports/translation-parity.md`** |
+## Google Fonts importer — `webfontkitgenerator/google.py` + `google.blp` → `lib/google_dialog.rb`
 
-14 UI/logic units all have a corresponding `lib/*.rb` file with real
-content. The 15th row above is the one the prior inventory explicitly
-deferred ("translation parity is a separate skill's job, not this
-inventory's") and that deferral is where this round's single largest gap
-lives — see the translation-parity report.
+`Adw.Dialog` with a `Gtk.Stack` of two pages: main (URL entry with paste/clear
+icon, inline error `Gtk.Revealer`, Download button) and loading
+(`Adw.StatusPage`, `ProgressBar`, Cancel). State machine: entry validation →
+database fetch (with `If-None-Match`/ETag caching against
+`google-fonts-sha`) → family/variant resolution from both legacy and v2
+Google Fonts CSS URLs → per-file download → write to tmp files → hand off to
+`Window#load_fonts` or toast the collected errors.
 
-## Per-unit detail not previously recorded
+## Shortcuts — `webfontkitgenerator/gtk/help-overlay.blp` → `lib/shortcuts_window.rb`
 
-### `lib/shortcuts_window.rb` — the keyboard-shortcuts dialog
+Five shortcuts in one "General" group: Show Shortcuts, Open Fonts, Select
+Output Directory, Google Fonts Importer, Generate. `Gtk.ShortcutsWindow`
+cannot be constructed from the Ruby bindings (documented, verified by the
+raised error quoted at `lib/shortcuts_window.rb:14-17`), so the port uses
+`Adw.ShortcutsDialog` instead — same five entries, same accelerators.
 
-Upstream's `help-overlay.blp` declares one `ShortcutsGroup` ("General") with
-**five** `ShortcutsShortcut` rows:
+## Application — `webfontkitgenerator/main.py` → `lib/webfont_kit_generator/application.rb`
 
-| Title | `action-name` |
-|---|---|
-| Show Shortcuts | `win.show-help-overlay` |
-| Open Fonts | `win.open` |
-| Select Output Directory | `win.set-dir` |
-| Google Fonts Importer | `win.google` |
-| **Generate** | **`win.generate`** |
+`about` action, five window accelerators (`open`, `google`, `set-dir`,
+`generate`, `back`) plus a sixth the port adds explicitly
+(`show-help-overlay`, which GTK binds by default anyway), `HANDLES_OPEN` →
+`open_files`, About dialog built from the same fields upstream's appdata
+carries.
 
-`lib/shortcuts_window.rb`'s `SHORTCUTS` constant has **four** entries — it
-drops the "Generate" row entirely. See `.reports/component-parity.md` for
-the full axis comparison; the accelerator itself is also missing (see
-below), so this is not a display-only gap.
+## Model/behaviour files with no upstream `.blp`
 
-### Accelerators — a unit the prior inventory did not cover at all
+`webfontkitgenerator/font.py` → `lib/font.rb` (the `Font` GObject) +
+`lib/font_row.rb` (the `Adw.ActionRow`-per-loaded-font widget, built in
+`window.py`'s list-binding code rather than its own template).
+`webfontkitgenerator/generator.py` → `lib/generator.rb`.
+`webfontkitgenerator/loader.py` → `lib/loader.rb`.
+`webfontkitgenerator/log.py` → `lib/log.rb`.
+`webfontkitgenerator/sourceview.py` → `lib/source_view.rb`.
+`webfontkitgenerator/style.css` → `lib/style.rb`.
+`webfontkitgenerator/__init__.py`/settings → `lib/settings.rb`.
 
-Upstream's `main.py` (`setup_actions`) binds five window accelerators:
+14 `lib/` files total, matching the runtime gate's "14 components."
 
-```
-win.open      <Ctl>o
-win.google    <Ctl>g
-win.set-dir   <Ctl>d
-win.generate  <Ctl>Return
-win.back      Escape
-```
+## Scope note
 
-(`<Ctl>` is not a GTK modifier name; both upstream and the port actually
-rely on `<Control>`/`<Primary>` resolving it, a known quirk, not a
-port-side bug.)
-
-`lib/webfont_kit_generator/application.rb`'s `WINDOW_ACCELS` binds **four**
-of the five — `open`, `google`, `set-dir`, `back`, `show-help-overlay` — and
-has **no entry for `generate`**. Pressing Ctrl+Return in the port does
-nothing; upstream fires `win.generate`.
-
-### `lib/log.rb` — the generation scrollback
-
-One-to-one with `webfontkitgenerator/log.py`: a `Gtk.TextView` with
-`append(text, bold:, italic:)` and `reset`. Present and apparently faithful.
-No test or drive script asserts its content — see
-`.reports/test-parity.md`.
-
-### `lib/style.rb` — the stylesheet
-
-Upstream's `webfontkitgenerator/style.css` is a file; the port's
-`lib/style.rb` holds the same rules as a Ruby string loaded through
-`Gtk::CssProvider`. Not diffed rule-by-rule in this pass (see
-`component-parity.md`, Step 4, for what remains unverified).
-
-## Totals
-
-14 of the 15 upstream units this inventory enumerates (14 UI/logic files +
-the `po/` catalogue) have a corresponding port artifact. `po/` has none at
-all — zero `.po` files, zero `gettext` calls anywhere in `lib/` or `exe/`.
-That is detailed fully in `.reports/translation-parity.md` and is this
-round's headline finding, not a footnote.
+This inventory is read-through, not a scripted scan — the app is 14 files and
+every upstream widget tree is in a `.blp` already, which the component-parity
+pass below reads line by line against the corresponding `lib/*.rb`. No
+scripted `component-scan.sh`/`gir-symbols.sh` pass was available in this
+environment; every claim above was checked by reading both sides directly
+(see `component-parity.md` for the line-level comparisons).

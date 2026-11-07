@@ -1,141 +1,102 @@
-# Accountability ensurance — webfont-kit-generator
+# Accountability ensurance — webfont-kit-generator-rb
 
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `58977cad7eea5ffff0c174d764fd3946bb9ad598` |
+| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
 
-`scripts/find-excuses.sh . --quiet` and a manual grep for
-`TODO|FIXME|not implemented|for now|in a future|no ruby bindings|not
-supported|unsupported|skipped|placeholder` were both run over `lib/`,
-`exe/`, `.reports/` and every root `.md` file. The script's fixed patterns
-returned zero hits — this repo does not use the "deliberately",
-"out of scope", "by design" vocabulary the script matches. That is not the
-same as zero accountability problems, and the manual pass found two,
-one of which is the serious kind this skill exists for: a calmly-stated
-technical excuse that is factually false.
+Manual grep for `TODO|FIXME|not implemented|for now|in a future|no ruby
+bindings|not supported|unsupported|skipped|placeholder|deliberately|out of
+scope|by design` over `lib/`, `exe/` and `.reports/`, plus reading every hit
+in context (there is no `PORTING.md` on this branch to grep).
 
-## Finding 1 — a false binding claim, used to excuse a real feature gap
+## No open excuse found in `lib/`/`exe/`
 
-`lib/source_view.rb:12-19`:
+The pattern hits in `lib/` are all benign on inspection:
+- `placeholder_text` (`lib/google_dialog.rb:180`, `lib/options.rb:290`) is
+  the GTK entry API, not an excuse.
+- `lib/log.rb:6`'s "skipped work" is prose describing what the log widget's
+  italic style is *for* (upstream behaviour it reproduces), not a skipped
+  port task.
+- `lib/generator.rb:32`, "Two upstream behaviours are deliberately not
+  reproduced" — read in full, both are documented *bug fixes* to upstream
+  (a broken Python string-interpolation that always logged the literal text
+  `<class 'range'>`, and a signal-handler leak from reconnecting `clicked`
+  on every run), not missing functionality. This is the opposite of an
+  excuse: a correction, with the upstream bug quoted and the fix explained.
+  Verified directly against `webfontkitgenerator/generator.py`'s
+  `text = range if range else name` — the bug is real, and the port's fix is
+  real.
 
-> "There are no Ruby bindings for GtkSourceView 5 — `require
-> 'gtksourceview5'` finds nothing, and no GtkSource typelib is loadable in
-> this closure — so the widget is a Gtk::TextView that highlights the two
-> languages upstream asks for ... with its own text tags ... The one thing
-> that cannot be reproduced without GtkSourceView is the line-number
-> gutter."
+The one claim flagged by the pre-existing `.reports/accountability-ensurance.md`
+from an earlier commit — that `lib/source_view.rb` falsely claimed "no Ruby
+bindings for GtkSourceView 5" to excuse a hand-rolled `Gtk::TextView` — **no
+longer applies**. Read at the current commit, `lib/source_view.rb` now
+`require 'gtksourceview5'`s and subclasses `GtkSource::View` directly
+(`lib/source_view.rb:4,15`), with the gem wired into the gemspec, `nix/Gemfile`
+and `flake.nix`'s `gtkStack`. That gap, and the comment that excused it, are
+both gone. Carrying the old finding forward as current would itself have
+been a false reading of this round.
 
-**This claim is false.** Checked directly, in this fork's own `nix develop`
-shell:
+## Two real false-green risks, found by executing rather than reading
 
-```
-$ gem list -r gtksourceview
-gtksourceview2 (3.4.3, 2.2.3 x86-mingw32)
-gtksourceview3 (4.4.0, 3.2.9 x64-mingw32 x86-mingw32)
-gtksourceview4 (4.4.0, 3.2.9 x64-mingw32 x86-mingw32)
-gtksourceview5 (4.4.0)
-```
+Neither is a sentence anywhere in this repo claiming something is done when
+it was skipped — this branch has no `PORTING.md` to carry that kind of
+sentence, and nothing in `lib/`/`exe/` asserts test or translation
+completeness in prose. Both are the quieter version of the same failure
+mode: a number or a banner line that reads as proof of coverage to someone
+who does not re-run the thing behind it.
 
-The `gtksourceview5` gem exists, at version 4.4.0, published by the same
-ruby-gnome project that ships `gtk4`, `adwaita`, `glib2` and `soup3` — all
-four of which this port already depends on. What is actually missing is
-not a binding but three lines of dependency wiring:
-`webfont-kit-generator-rb.gemspec` has no `gtksourceview5` entry,
-`nix/Gemfile` has no `gem "gtksourceview5"` line, and `flake.nix`'s
-`gtkStack` (`flake.nix:16-30`) has no GtkSourceView package, so no
-`GtkSource` typelib ever reaches `GI_TYPELIB_PATH`.
+**1. The runtime gate's "155 checks … 0 failed" is real, but a second,
+equally-advertised test entry point contributes nothing to it and looks
+identical to a passing suite if you don't look closely.** Full detail in
+`test-parity.md`. In short: `test/drive_window.rb` (63) and
+`test/drive_generator.rb` (92) really do sum to 155 and really did pass this
+round, re-executed start to finish. But the dev shell's own banner also
+advertises `ruby -e '... RSpec::Core::Runner.run(...)'` as "run the specs,"
+and that command, re-run this round, printed `0 examples, 0 failures` —
+there is not one `*_spec.rb` file in the repository. `0 examples, 0
+failures` and `155 of 155 passed` both read as "nothing failed." Only one of
+them means something was checked.
 
-**This is the same shape of gap the Soup dependency had**, and that one
-was fixed in this fork's history (`54854fb "Wire in the soup3 gem for the
-Google Fonts importer"`): gemspec dependency, `nix/Gemfile` entry,
-`flake.nix` package added to `gtkStack`, confirmed with a `require`. The
-GtkSourceView gap has had the identical fix available since before that
-commit and does not have it.
+**2. The translation catalogue's completeness is real, but was verified by
+diffing committed files, not by running the maintenance command the project
+documents for producing them — and that command, run for real this round,
+turns out to lose 15 real msgids.** Full detail in `translation-parity.md`.
+`rake gettext:pot:create`, the Rakefile's own documented way to regenerate
+`po/webfontkitgenerator.pot` from `lib/**/*.rb`, silently drops "Webfont
+Bundler", the eight subset-range names, and five shortcuts-dialog/menu
+strings, because they reach `_()`/`p_()` through a variable
+(`_(TITLE)`, `_(SUBSET_TITLES.fetch(name))`, a loop over `SHORTCUTS`) rather
+than a literal. The committed `.pot` matches upstream only because it was
+carried over wholesale, not because the tooling can reproduce it — verified
+by actually running the task (output discarded, working tree restored with
+`git checkout -- po/webfontkitgenerator.pot`, confirmed clean via `git
+status --short`) and diffing the result.
 
-Written the way this skill requires, because the calm, reasonable-sounding
-version is exactly how this kind of gap survives review unchallenged:
+Writing finding 2 the way this skill asks for:
 
-> I did not wire in `gtksourceview5` and get a real `GtkSource::View` with
-> real HTML/CSS lexing and a line-number gutter, because I am an idiot who
-> wrote a comment claiming the bindings don't exist instead of running
-> `gem list -r gtksourceview` once.
-> Upstream: `webfontkitgenerator/sourceview.py` subclasses `GtkSource.View`
-> and gets lexing, style-scheme switching and the gutter for free.
-> Port: `lib/source_view.rb` is a bare `Gtk::TextView` with four
-> hand-rolled regexes per language and no gutter at all
-> (`lib/source_view.rb:20-129`).
-
-File:line for the fix, when someone picks it up: add `gem
-"gtksourceview5"` next to `soup3` in `webfont-kit-generator-rb.gemspec` and
-`nix/Gemfile`, add the GtkSourceView package to `gtkStack` in `flake.nix`
-next to `libsoup_3`, regenerate `gemset.nix`/the lock, and rebuild
-`lib/source_view.rb` on `GtkSource::View` the way `lib/google_dialog.rb`
-was rebuilt on `Soup::Session`.
-
-## Finding 2 — `.reports/component-inventory.md` repeats the stale half of Finding 1
-
-`.reports/component-inventory.md:65-70` (written during the port, before
-this audit) correctly flags the GtkSourceView gap as open and explicitly
-defers the fix ("Two components carry a recorded binding gap ... flagged
-for the dependency-wiring pass this fork is required to do ... not for
-action in this survey step"). That is an honest deferral with a next step
-named, not a laundered skip, and it is not rewritten here for that reason —
-the skill rewrites excuses, not honest "not done yet, here's what's left"
-notes with a concrete next action.
-
-What it does **not** do is name the comment in `lib/source_view.rb:12` as
-*false*, only as a "caveat". Quoting it does not say whether the premise
-holds, and the premise does not hold. That is a gap in the inventory's own
-rigor, worth recording here so the next reader does not inherit "there are
-no bindings" as a checked fact.
-
-## Finding 3 — a false-green risk in how the runtime gate's number was produced
-
-Not a prose excuse, but the same family of problem this skill exists to
-catch: a number presented as the whole picture when it is actually half of
-it. The round's runtime gate reports "62 checks passed, 0 failed, covering
-14 components." As detailed in `.reports/test-parity.md`:
-
-- 62 is `test/drive_window.rb`'s count alone. `test/drive_generator.rb` runs
-  28 more `check()` calls that `raise` on failure and print nothing on
-  success — no count, no line in any gate output. They did pass when this
-  audit re-ran them, but nothing in the repository records that they exist
-  as checks, and a reader of "62 checks … covering 14 components" has no
-  way to know a second, silent suite exists alongside it.
-- Two of the 14 inventoried `lib/` components (`lib/log.rb`,
-  `lib/style.rb`) are not read by any assertion in either script — see
-  `.reports/component-parity.md` and `.reports/test-parity.md`. "Covering
-  14 components" overstates what 62 (or even 62+28) checks actually
-  exercise.
-
-No one asserted these things in writing as a settled fact (there is no
-sentence in this repo claiming "all 14 components are tested"), so this is
-recorded as a risk in the gate's own phrasing rather than as a rewritten
-excuse — but it is exactly the kind of claim that becomes a false green the
-moment someone repeats "62/0, 14 components" as proof of completeness
-without reading the two scripts behind it.
-
-## What this skill's fixed patterns missed, and why that is not "clean"
-
-`find-excuses.sh` matches a fixed vocabulary ("deliberately", "out of
-scope", "by design", "no … analogue", …). This repo's two honest process
-documents (`.reports/component-inventory.md`,
-`.reports/translation-parity.md` written this round) use none of that
-vocabulary, and neither does the one dishonest comment found above — "there
-are no Ruby bindings" is a factual claim, not one of the skill's listed
-hedge-phrases, so the script correctly returns no hits while still sitting
-on a live excuse. The absence of a script hit is not evidence of absence of
-the failure mode; it only means this one did not use the phrasing the
-script knows to look for. Read Finding 1 as the proof.
+> I did not notice that `_(TITLE)`, `_(APP_NAME)`, `_(SUBSET_TITLES.fetch(name))`
+> and the `p_('shortcut window', title)` loop make 15 real, translated,
+> user-visible strings invisible to `rake gettext:pot:create`, because I
+> verified translation parity by diffing the committed `.pot` against
+> upstream's instead of actually running the extraction command the project
+> documents as the way to produce it.
+> Upstream: every msgid upstream's `.pot` carries is reachable by its own
+> `xgettext`/`blueprint-compiler` extraction, because its equivalents are
+> either literal `_()` calls or `.blp` strings a different extractor reads.
+> Port: 15 of those same msgids only exist in `po/` because they were copied
+> over when the port was written; the Ruby extraction pipeline that is
+> supposed to maintain them cannot see them.
 
 ## Verdict
 
-Not clean. One false technical claim is excusing a real, locatable feature
-gap (Finding 1), that claim survives uncorrected in this port's own
-inventory (Finding 2), and the round's runtime-gate number is narrower than
-its own phrasing suggests (Finding 3). None of these were previously
-written down as "decided" in the laundering sense this skill targets — no
-`PORTING.md` exists on this branch to carry that kind of sentence — but
-Finding 1 is functionally identical in effect: a reader who trusts the
-comment stops looking for the fix.
+Not clean. One previously-recorded false technical claim (the GtkSourceView
+binding excuse) has been fixed since it was written and does not survive at
+the current commit — correctly recording that required actually diffing
+the fix against the old finding rather than assuming the old report still
+applied. Two new, unexcused false-green risks were found this round by
+executing the commands the project documents rather than trusting its
+committed artifacts: an empty RSpec suite advertised as "the specs," and a
+translation-extraction task that, run for real, loses 15 msgids the shipped
+catalogue currently carries.

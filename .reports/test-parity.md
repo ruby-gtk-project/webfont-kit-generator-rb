@@ -1,102 +1,92 @@
-# Test parity — webfont-kit-generator
+# Test parity — webfont-kit-generator-rb
 
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `58977cad7eea5ffff0c174d764fd3946bb9ad598` |
-| Upstream tests | 0 |
-| Ported | 0 |
-| Gaps | 0 |
-| Test command | none exists — see below |
+| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
 
 ## Upstream has no test suite
 
-Verified directly: `git ls-tree -r --name-only origin/master | grep -i test`
-returns nothing. No `tests/` directory, no `unittest`/`pytest` imports in
-any `.py` file, no test target in `meson.build` or `pyproject.toml`. Parity
-is 0/0 and is met trivially, per `test-parity`'s own rule for this case.
+`git ls-tree -r --name-only origin/master` has no `test/`, `tests/` directory
+and no test target in `meson.build` or `pyproject.toml`. There is nothing
+upstream to port. Every check in this port is additional coverage the port
+wrote for itself, not a translation of an existing suite.
 
-**The port therefore inherits no safety net from upstream.** Everything
-below is extra, written for the port, pinning nothing upstream considered
-worth pinning, and not a substitute for the census this skill exists to
-run.
-
-## The port's own test setup is, on inspection, two things wearing one name
-
-`spec/` is kettle-jem's generated RSpec scaffold and nothing else:
+## What actually runs, re-executed this round
 
 ```
-spec/README.md       — documents harness helpers (stub_env, hide_env, …)
-spec/spec_helper.rb   — requires kettle/test/rspec, configures RSpec
+nix develop --command xvfb-run -a ruby test/drive_window.rb      → 63 of 63 checks passed, DRIVE OK
+nix develop --command xvfb-run -a ruby test/drive_generator.rb   → 92 of 92 checks passed, DRIVE OK — 4 files written
 ```
 
-**There is not one `*_spec.rb` file in the repository.** `bundle exec
-rspec` (or the banner's `ruby -e 'require "rspec/core"; …'`) runs and
-reports **0 examples, 0 failures** — a green RSpec run that has executed
-nothing. That is a suite that has never meaningfully run, and per this
-audit's brief it is reported as exactly that, not folded into "tests pass."
+63 + 92 = **155**, matching the runtime gate's "155 checks passed, 0 failed."
+Unlike an earlier round (recorded in the stale pre-existing
+`.reports/test-parity.md` this report supersedes), the two scripts' counts
+now both surface in `DRIVE OK` output — the earlier split where
+`drive_generator.rb` ran 28 silent `check()`s with no summary line has been
+fixed; both scripts now print `N of N checks passed`.
 
-## What actually exists: two driver scripts, not a test suite
+Coverage, read from the two scripts:
+- `drive_window.rb`: empty state, loading valid/invalid/garbage files, the
+  fonts list and sidebar appearing, output-directory selection (including the
+  unwritable-directory rejection path), Generate enablement, `remove-font`,
+  returning to empty state, file-chooser actions disabling off the main
+  page, the shortcuts dialog, the About dialog, the Google dialog opening,
+  and (step 25) `lib/style.rb`'s CSS rules against upstream's `style.css`
+  selector-for-selector.
+- `drive_generator.rb`: a full font-loading-through-generation run,
+  asserting on the written WOFF/WOFF2 files, the generated CSS/HTML
+  snippets, and (`verify_log`, `drive_generator.rb:158-165`) five specific
+  lines in `lib/log.rb`'s buffer — closing the previously-flagged gap where
+  `lib/log.rb` was built but never read by any check.
+
+All 14 `lib/` components are now touched by at least one assertion in one of
+the two scripts (`lib/log.rb` and `lib/style.rb`, the two the prior round's
+report flagged as unread, are both asserted on now — see the two bullets
+above).
+
+## The gap: the advertised spec suite is empty and was never run as part of the gate
+
+The dev shell's own banner (and `spec/README.md`) advertise a third way to
+run tests:
 
 ```
-test/drive_window.rb      — 62 check() calls, prints "N of N checks passed"
-test/drive_generator.rb   — 28 check() calls, raises on failure, prints nothing on success
-test/gtk_driver.rb        — shared headless-driving helper (harness, not tests)
+ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(["--format", "progress", "--require", "spec_helper", "spec"])'
 ```
 
-Both were run for this audit, from this fork's own dev shell:
+Re-run this round, under `xvfb-run` inside the dev shell:
 
 ```
-nix develop --command xvfb-run -a ruby test/drive_window.rb     -> 62 of 62 checks passed, DRIVE OK
-nix develop --command xvfb-run -a ruby test/drive_generator.rb  -> DRIVE OK — 4 files written (no per-check output)
+NOTE: kettle-test isn't installed; running with plain RSpec.
+No examples found.
+Finished in 0.00145 seconds (files took 4.78 seconds to load)
+0 examples, 0 failures
 ```
 
-Two things follow from reading the scripts rather than trusting the banner:
+`spec/` contains only `spec_helper.rb` and `spec/README.md` — there is not a
+single `*_spec.rb` file in the repository. The command the project advertises
+as "run the specs" passes trivially because there is nothing in it to fail,
+not because anything was verified. This is a suite that has never been
+executed in the sense of exercising code — it has only ever been executed in
+the sense of loading zero files and reporting zero failures.
 
-1. **`drive_generator.rb`'s 28 checks are invisible in any gate report.**
-   Its `check(condition, message)` (`test/drive_generator.rb:415-419`)
-   `raise`s on failure and prints **nothing** on success — there is no
-   counter, no "N of N" line. The round's runtime gate ("62 checks passed,
-   0 failed") is arithmetically `drive_window.rb`'s count alone; the 28
-   checks in `drive_generator.rb` ran, and this audit confirmed they
-   passed, but no artifact in this repo records that they exist or that
-   they passed, short of reading the source and re-running it. A gate
-   number quoted as "the" check count, when it is actually one of two
-   scripts' counts, is the kind of narrow-drive-read-as-broad this audit
-   was told to flag.
+This matters for the runtime gate specifically: "155 checks passed, 0 failed,
+covering 14 components" is entirely `test/drive_*.rb`'s number. The RSpec
+suite contributes **0** checks to that number and 0 components to that
+coverage, while still being presented in the dev shell banner, in
+`spec/README.md`, and by the gemspec's `kettle-test`/`turbo_tests2`/
+`anonymous_loader` development dependencies as this project's test
+infrastructure. A reader who sees "run the specs" in the banner and "155
+checks … 0 failed" in the gate has no signal that the thing the banner calls
+"the specs" is empty.
 
-2. **Two of the fourteen inventoried `lib/` components are exercised by
-   neither script's checks**: `lib/log.rb` (receives calls during
-   `drive_generator.rb` but nothing reads its buffer back — see
-   `.reports/component-parity.md`) and `lib/style.rb` (never diffed or
-   asserted against upstream's CSS at all). Per this audit's brief, these
-   are **unverified**, not passing.
+## Verdict
 
-## Extra
-
-- `test/drive_window.rb` — 62 checks driving the window, the app menu, the
-  shortcuts/about dialogs, the Google Fonts importer's URL parsing and
-  error states, the options sidebar's reporting, font loading (good path,
-  unreadable path, non-font path), output-directory picking (writable and
-  unwritable), font removal, and page-navigation sensitivity.
-- `test/drive_generator.rb` — 28 checks end-to-end generating a real WOFF
-  and WOFF2 from a sample font and verifying both containers byte-for-byte
-  (sfnt checksum reconstruction, woff/woff2 header fields, per-table
-  checksums, Brotli-decompressed stream lengths, transform flags) plus the
-  emitted HTML/CSS snippet text.
-
-These are real and substantial — the generator's binary-format checks in
-particular are the kind of test upstream's own suite (which does not exist)
-never had reason to write. They are listed here as extra, not as parity,
-because upstream wrote none of them and so none of them map back to an
-upstream test by this skill's definition.
-
-## Rules check
-
-- No upstream test was lowered, merged, or skipped — there were none to
-  touch.
-- The "0/0, met trivially" state is stated plainly, per the skill's own
-  instruction for this case, rather than left to be inferred from an
-  absent table.
-- The RSpec scaffold's 0-examples state is named explicitly above rather
-  than allowed to stand in silently for "has a test suite."
+Not fully clean. The `test/drive_*.rb` suite is real, ported-beyond-upstream
+coverage that was re-run this round and passed in full (155/155, matching
+the gate). But the project's second, explicitly documented test entry point
+(`spec/`) is an empty shell that has never asserted anything, and nothing in
+the gate's reported numbers distinguishes "155 real checks" from "0 real
+checks plus 155 real checks," because the empty suite's 0-examples-0-failures
+result looks identical to a passing suite to anyone who does not run it and
+read the "No examples found" line.
