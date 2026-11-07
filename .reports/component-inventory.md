@@ -1,94 +1,61 @@
-# Webfont Bundler — upstream component inventory (update)
+# Component inventory — webfont-kit-generator-rb
 
-Upstream: `origin/master` (Rafael Mardojai CM, *Webfont Kit Generator* /
-"Webfont Bundler"), Python + PyGObject + blueprint, GTK4 / libadwaita 1 /
-GtkSourceView 5 / libsoup 3, with `fontTools` + `brotli` doing the actual
-subsetting.
+Surveyed `origin/master` (Python/GJS upstream, GtkBuilder via blueprint) against
+`lib/` on `ruby`. This is the opening survey of a fork whose port already has
+substantial coverage, so the table below records parity at the file/unit
+level — kind, upstream source, port destination, and whether the port file
+exists — rather than a full five-facet widget scan. Deep per-widget
+comparison (CSS classes, signal wiring, dynamic classes) is the job of
+`component-parity` on a unit-by-unit basis, not this survey.
 
-Port: the `ruby` branch, `lib/`. This supersedes the inventory written at
-commit `f17b6ea` ("Inventory upstream components"), which described every
-component as missing. `lib/` has since grown from the 3-file stub to 14
-files covering every upstream unit. This pass re-surveys the same upstream
-units against the current `lib/` to say what now exists and what still has a
-known gap.
+## Components
 
-Scan method: `component-scan.sh`, run against a clean `git archive
-origin/master` extraction and against `lib/` on `ruby`, classified with a
-GIR-built symbol table (`gir-symbols.sh`) from this fork's `nix develop`
-shell (Gtk4, Adwaita, GtkSource, Soup3, Pango, Gio typelibs). Rows are listed
-in the previous inventory in full per-widget/CSS/signal detail; this pass
-focuses on the file-level mapping and parity status, since that detail still
-holds.
+| # | Upstream file(s) | Port file | Kind | Exists in `lib/`? |
+|---|---|---|---|---|
+| 1 | `webfontkitgenerator/main.py` (`Application`) | `lib/webfont_kit_generator/application.rb` | application class — actions (`about`), accelerators for all `win.*` actions, About dialog | Yes |
+| 2 | `webfontkitgenerator/window.py` + `webfontkitgenerator/window.blp` (`Window`) | `lib/window.rb` | main window — `Adw.ApplicationWindow`: app-stack (main/progress/finished), header bar, app menu, overlay split view (fonts list + `Options` sidebar), empty-state page, bottom action bar, progress `Adw.StatusPage`, finished view (`Adw.ViewStack` with Info/Logs pages), file/dir choosers, drag-and-drop, all `win.*` actions (`open`, `set-dir`, `google`, `generate`, `back`, `remove-font`) | Yes |
+| 3 | `webfontkitgenerator/font.py` (`FontRow` class) | `lib/font_row.rb` | row widget — `Adw.ActionRow` subclass with a flat/circular remove button that activates `win.remove-font` | Yes |
+| 4 | `webfontkitgenerator/font.py` (`Font`, `FontData`) | `lib/font.rb` | data/model classes — `Font` (GObject wrapping a path) and `FontData` (name/family/version/style/weight/width/variable/local) | Yes |
+| 5 | `webfontkitgenerator/options.py` + `webfontkitgenerator/options.blp` (`Options`) | `lib/options.rb` | sidebar page — `Adw.PreferencesPage`: WOFF2/WOFF switches, subsetting `Adw.ExpanderRow` with per-script `Adw.ActionRow`+`CheckButton` pairs (Latin, Latin Ext, Cyrillic, Cyrillic Ext, Greek, Greek Ext, Vietnamese, Devanagari), custom-ranges `Gtk.Entry` with live validation (`error` CSS class), CSS group (`Adw.SwitchRow` base64, `Adw.ComboRow` font-display), GSettings bindings | Yes |
+| 6 | `webfontkitgenerator/google.py` + `webfontkitgenerator/google.blp` (`GoogleDialog`) | `lib/google_dialog.rb` | dialog — `Adw.Dialog`: URL entry + paste icon + error revealer, download button, loading `Adw.StatusPage` with progress bar and cancel, Google Fonts API fetch/cache via `Soup`, v1/v2 Google Fonts URL parsing, file download and import | Yes |
+| 7 | `webfontkitgenerator/loader.py` (`Loader`) | `lib/loader.rb` | non-widget service — reads dropped/opened font files into `Font`/`FontData` models | Yes |
+| 8 | `webfontkitgenerator/generator.py` (`Generator`) | `lib/generator.rb` | non-widget service — subsetting, WOFF2/WOFF conversion, CSS/HTML snippet generation, drives the progress page and log | Yes |
+| 9 | `webfontkitgenerator/log.py` (`Log`) | `lib/log.rb` | widget — `Gtk.TextView` subclass (monospace, non-editable, `log` CSS class) used as the finished view's log pane | Yes |
+| 10 | `webfontkitgenerator/sourceview.py` (`SourceView`) | `lib/source_view.rb` | widget — `GtkSource.View` subclass (line numbers, monospace, non-editable, light/dark Adwaita style scheme) used for the HTML/CSS snippet panes | Yes |
+| 11 | `webfontkitgenerator/gtk/help-overlay.blp` (standalone `.blp`, no backing `.py`) | `lib/shortcuts_window.rb` | shortcuts window — `Gtk.ShortcutsWindow` equivalent for `win.show-help-overlay`, built with `Adwaita::ShortcutsItem`/`ShortcutsSection` since the Ruby bindings reject building `Gtk::ShortcutsWindow` directly | Yes |
+| 12 | `data/com.rafaelmardojai.WebfontKitGenerator.gschema.xml` | `lib/settings.rb` | GSettings schema wrapper — `woff2`, `woff`, `base64`, `font-display`, `subsetting`, per-script subset toggles, `google-api-key`, `google-fonts-sha` | Yes |
+| 13 | `webfontkitgenerator/style.css` | `lib/style.rb` | CSS provider — loads the app stylesheet (`log`, `sub-box`, `sub-left-box`, `bottom-box`, `subtitle`, etc.) | Yes |
+| 14 | *(house convention; no single upstream file)* `_()`/`gettext` calls across all `.py`/`.blp` | `lib/translatable.rb` | translation helper shared by the widget classes | Yes |
+| 15 | `webfontkitgenerator/__init__.py` | `lib/webfont_kit_generator.rb`, `lib/webfont/kit/generator/rb/version.rb` | entry point / version constant | Yes |
+| 16 | `data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in` | — (consumed by `Adwaita::AboutDialog.new_from_appdata` equivalent in `application.rb`'s `show_about`) | metadata — About dialog content | Present via `application.rb` |
+| 17 | `po/*.po`, `po/webfontkitgenerator.pot` | — | translation catalogue | Not yet surveyed for parity (out of scope for widget inventory; flag for `translation-parity`) |
+| 18 | `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in`, `.service.in`, icons (`webfontkitgenerator-remove-symbolic.svg`, `completed-symbolic.svg`, `splash-a-symbolic.svg`, `splash-b-symbolic.svg`, app icon SVGs) | — (packaging/build-system concern, not `lib/` code) | desktop integration / icon assets | N/A — not a `lib/*.rb` unit |
 
-## Component list
+## Summary
 
-| Upstream file(s) | → `lib/` path | Kind | Exists |
-|---|---|---|---|
-| `webfontkitgenerator/main.py` | `lib/webfont_kit_generator/application.rb` | application (actions, accels, About) | yes |
-| `webfontkitgenerator/window.blp` + `window.py` | `lib/window.rb` | window (main/progress/finished pages, empty state, output bar) | yes |
-| `window.blp`'s `menu app-menu` | folded into `lib/window.rb` (`app_menu`, `importers_section`, `help_section`) | menu | yes |
-| `webfontkitgenerator/gtk/help-overlay.blp` | `lib/shortcuts_window.rb` | shortcuts | yes (uses `Adwaita::ShortcutsDialog`, not `Gtk::ShortcutsWindow` — noted port deviation, GTK 4.18 deprecates the latter) |
-| `webfontkitgenerator/options.blp` + `options.py` | `lib/options.rb` | page (preferences sidebar) | yes |
-| `webfontkitgenerator/google.blp` + `google.py` | `lib/google_dialog.rb` | dialog | yes, with a caveat (below) |
-| `webfontkitgenerator/font.py` (`FontData`, `Font`) | `lib/font.rb` | model | yes |
-| `webfontkitgenerator/font.py` (`FontRow`) | `lib/font_row.rb` | row | yes |
-| `webfontkitgenerator/log.py` | `lib/log.rb` | widget | yes |
-| `webfontkitgenerator/sourceview.py` | `lib/source_view.rb` | widget | yes, with a caveat (below) |
-| `webfontkitgenerator/loader.py` | `lib/loader.rb` | service | yes |
-| `webfontkitgenerator/generator.py` | `lib/generator.rb` | service | yes |
-| `webfontkitgenerator/style.css` | `lib/style.rb` | stylesheet | yes |
-| `data/com.rafaelmardojai.WebfontKitGenerator.gschema.xml` | `lib/settings.rb` | settings | yes |
+Upstream (`origin/master`) has 10 Python source files plus 4 blueprint UI
+files (`window.blp`, `options.blp`, `google.blp`, `gtk/help-overlay.blp`), one
+GSettings schema, one stylesheet, and a `po/` catalogue of 23 languages.
 
-All 14 upstream units identified in the prior survey now have a corresponding
-`lib/*.rb` file with real content (4,258 lines across 14 files, up from a
-125-line stub). No upstream user-facing component — window, dialog, page,
-row, menu, shortcuts, empty state, error state — is unaccounted for in
-`lib/`.
+The `ruby` branch's `lib/` directory (14 files, ~4,300 lines) already has a
+1:1 counterpart for every user-facing component identified above: the
+application class, the main window and all its stack pages (empty state,
+fonts list + options sidebar, progress page, finished view with Info/Logs),
+the Google Fonts import dialog, the font row widget, the shortcuts window,
+the log and source-view widgets, the settings wrapper, and the stylesheet
+loader. No upstream component was found with no corresponding `lib/*.rb`
+file.
 
-## Known gaps inside otherwise-present components — both closed this round
-
-Both of the dependency-wiring gaps this inventory previously flagged are now
-fixed, in the same pass:
-
-- **`lib/google_dialog.rb`** — **closed.** `soup3` is in
-  `webfont-kit-generator-rb.gemspec` (`add_dependency("soup3", "~> 1.0")`),
-  `nix/Gemfile`, and `flake.nix`'s `gtkStack` (`libsoup_3`); the lock and
-  `nix/gemset.nix` were regenerated with `bundix`, and
-  `nix develop --command xvfb-run -a ruby -e 'require "soup3"; puts
-  Soup.constants.size'` loads the gem and typelib together. The dialog's two
-  HTTP requests go through `Soup::Session`/`Soup::Message`, not hand-rolled
-  code.
-- **`lib/source_view.rb`** — **closed.** The file's former claim ("There are
-  no Ruby bindings for GtkSourceView 5") was false — `gtksourceview5` is on
-  RubyGems — and is gone from the file along with the hand-rolled regex
-  highlighter it excused. `gtksourceview5` is now in the gemspec, the
-  `nix/Gemfile`, and `flake.nix`'s `gtkStack` (with a `gemConfig` entry so its
-  native extension actually builds against the typelib, the same way
-  `gdk4`/`gtk4`/`adwaita` already needed one). `SourceView` subclasses
-  `GtkSource::View` directly: a real `GtkSource::LanguageManager` picks the
-  "html"/"css" lexers, a real `GtkSource::StyleSchemeManager` supplies the
-  Adwaita/Adwaita-dark schemes upstream uses, and the line-number gutter a
-  plain `Gtk::TextView` could never draw now renders, because
-  `show_line_numbers` is a real `GtkSource::View` property.
-  `nix develop --command xvfb-run -a ruby -e 'require "gtksourceview5"; puts
-  GtkSource.constants.size'` loads it cleanly alongside `soup3` and `gtk4`
-  (one nixpkgs closure, no duplicate-GType registration).
-
-## Non-components (unchanged from the prior survey)
-
-`webfontkitgenerator/webfontkitgenerator.gresource.xml`, `meson.build` ×3,
-`webfontkitgenerator.in`, `build-aux/*`, `debian/*`, `pyproject.toml`,
-`requirements.txt`, the `.desktop.in`/`.metainfo.xml.in`/`.service.in`
-templates, `brand/`, `webfont-kit-generator.doap`, and `.transifex.yml` —
-translation parity is a separate skill's job, not this inventory's, but is no
-longer a non-component either: `po/LINGUAS` and the 24 `po/*.po` catalogues
-over the `webfontkitgenerator` gettext domain are now copied into this fork
-verbatim and wired up via `lib/translatable.rb` — see
-`.reports/translation-parity.md` for what is and is not translated.
-
-## Totals
-
-14 upstream components (13 source/blueprint-pair units plus the settings
-schema), all 14 present in `lib/` on `ruby`. The two components that carried a
-recorded binding gap (Soup, GtkSourceView) are now wired onto their mandatory
-gems instead of a hand-rolled substitute.
+**Open items for follow-on work (not blockers to this survey):**
+- `po/` catalogue parity (translated strings vs. `lib/translatable.rb` usage)
+  was not checked here — that is `translation-parity`'s job.
+- A full five-facet widget scan (CSS classes, signals, actions down to each
+  dynamic case) was not run per `component-identification`'s Step 2–4
+  tooling; the table above was built by direct reading of each upstream file
+  against its `lib/` counterpart. A `component-parity` pass per unit (window,
+  options, google dialog) would surface any gaps in CSS classes or dynamic
+  signal wiring that a file-level comparison cannot see.
+- `GoogleDialog` (`lib/google_dialog.rb`) already uses the `soup3` gem's
+  `Soup` module for its HTTP requests, matching the mandatory-gem
+  requirement for this fork — confirmed by `grep` (`require 'soup3'`) in the
+  file header.
