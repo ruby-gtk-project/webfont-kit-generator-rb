@@ -3,100 +3,101 @@
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
+| Port | `ruby` @ `ea115ca9ded6afbe879afecd5d6f7e84cc4c08a9` |
 
-Manual grep for `TODO|FIXME|not implemented|for now|in a future|no ruby
-bindings|not supported|unsupported|skipped|placeholder|deliberately|out of
-scope|by design` over `lib/`, `exe/` and `.reports/`, plus reading every hit
-in context (there is no `PORTING.md` on this branch to grep).
+Scan: `find-excuses.sh` run over the whole tree, plus manual `grep -rn`
+for `TODO|FIXME|not implemented|for now|in a future|no ruby bindings|not
+supported|unsupported|skipped|placeholder|deliberately|out of scope|by
+design` across `lib/`, `exe/`, `.reports/`, `TRANSLATION_PARITY.md` and
+`COMPONENT_PARITY.md` (there is no `PORTING.md` on this branch). Every hit
+read in context rather than counted.
 
-## No open excuse found in `lib/`/`exe/`
+## No open excuse in `lib/`/`exe/`
 
-The pattern hits in `lib/` are all benign on inspection:
 - `placeholder_text` (`lib/google_dialog.rb:180`, `lib/options.rb:290`) is
   the GTK entry API, not an excuse.
-- `lib/log.rb:6`'s "skipped work" is prose describing what the log widget's
-  italic style is *for* (upstream behaviour it reproduces), not a skipped
-  port task.
-- `lib/generator.rb:32`, "Two upstream behaviours are deliberately not
-  reproduced" — read in full, both are documented *bug fixes* to upstream
-  (a broken Python string-interpolation that always logged the literal text
-  `<class 'range'>`, and a signal-handler leak from reconnecting `clicked`
-  on every run), not missing functionality. This is the opposite of an
-  excuse: a correction, with the upstream bug quoted and the fix explained.
-  Verified directly against `webfontkitgenerator/generator.py`'s
-  `text = range if range else name` — the bug is real, and the port's fix is
-  real.
+- `lib/log.rb:6`'s "skipped" is prose describing the log widget's italic
+  style, not a skipped port task.
+- `lib/generator.rb:32`'s "Two upstream behaviours are deliberately not
+  reproduced" is, read in full, two documented *bug fixes* to upstream (a
+  Python string-interpolation bug that always logged the literal text
+  `<class 'range'>`, and a `clicked`-handler reconnect leak) — a correction
+  with the upstream bug quoted and verified against
+  `webfontkitgenerator/generator.py`, not a missing feature. This is the
+  opposite of an excuse.
+- No `TODO`, `FIXME`, "not implemented", "for now", "in a future", "no
+  Ruby bindings [for X, unqualified]", or "not supported" survives a read
+  anywhere in `lib/` or `exe/` this round.
 
-The one claim flagged by the pre-existing `.reports/accountability-ensurance.md`
-from an earlier commit — that `lib/source_view.rb` falsely claimed "no Ruby
-bindings for GtkSourceView 5" to excuse a hand-rolled `Gtk::TextView` — **no
-longer applies**. Read at the current commit, `lib/source_view.rb` now
-`require 'gtksourceview5'`s and subclasses `GtkSource::View` directly
-(`lib/source_view.rb:4,15`), with the gem wired into the gemspec, `nix/Gemfile`
-and `flake.nix`'s `gtkStack`. That gap, and the comment that excused it, are
-both gone. Carrying the old finding forward as current would itself have
-been a false reading of this round.
+## A previously-recorded excuse, checked, and confirmed gone
 
-## Two real false-green risks, found by executing rather than reading
+An earlier round's `.reports/accountability-ensurance.md` recorded that
+`lib/source_view.rb` falsely claimed "no Ruby bindings for GtkSourceView 5"
+to excuse a hand-rolled `Gtk::TextView`. Re-read at the current commit:
+`lib/source_view.rb` now `require 'gtksourceview5'`s and subclasses
+`GtkSource::View` directly, the gem is wired into the gemspec,
+`nix/Gemfile` and `flake.nix`'s `gtkStack`, and `require 'gtksourceview5'`
+was re-run in the dev shell this round and succeeds. That excuse and the
+gap behind it are both gone — verified by running the require, not by
+reading last round's note.
 
-Neither is a sentence anywhere in this repo claiming something is done when
-it was skipped — this branch has no `PORTING.md` to carry that kind of
-sentence, and nothing in `lib/`/`exe/` asserts test or translation
-completeness in prose. Both are the quieter version of the same failure
-mode: a number or a banner line that reads as proof of coverage to someone
-who does not re-run the thing behind it.
+## The real finding this round: two committed ledgers no longer describe the tree they're about
 
-**1. The runtime gate's "155 checks … 0 failed" is real, but a second,
-equally-advertised test entry point contributes nothing to it and looks
-identical to a passing suite if you don't look closely.** Full detail in
-`test-parity.md`. In short: `test/drive_window.rb` (63) and
-`test/drive_generator.rb` (92) really do sum to 155 and really did pass this
-round, re-executed start to finish. But the dev shell's own banner also
-advertises `ruby -e '... RSpec::Core::Runner.run(...)'` as "run the specs,"
-and that command, re-run this round, printed `0 examples, 0 failures` —
-there is not one `*_spec.rb` file in the repository. `0 examples, 0
-failures` and `155 of 155 passed` both read as "nothing failed." Only one of
-them means something was checked.
+Nothing in `lib/`/`exe/` claims false completeness in prose. The false
+claims this round are in the *parity ledgers themselves* — numbers that
+were true when written and have not been updated since the code moved past
+them. Both were found by re-executing the underlying check, not by reading
+the ledger's own words.
 
-**2. The translation catalogue's completeness is real, but was verified by
-diffing committed files, not by running the maintenance command the project
-documents for producing them — and that command, run for real this round,
-turns out to lose 15 real msgids.** Full detail in `translation-parity.md`.
-`rake gettext:pot:create`, the Rakefile's own documented way to regenerate
-`po/webfontkitgenerator.pot` from `lib/**/*.rb`, silently drops "Webfont
-Bundler", the eight subset-range names, and five shortcuts-dialog/menu
-strings, because they reach `_()`/`p_()` through a variable
-(`_(TITLE)`, `_(SUBSET_TITLES.fetch(name))`, a loop over `SHORTCUTS`) rather
-than a literal. The committed `.pot` matches upstream only because it was
-carried over wholesale, not because the tooling can reproduce it — verified
-by actually running the task (output discarded, working tree restored with
-`git checkout -- po/webfontkitgenerator.pot`, confirmed clean via `git
-status --short`) and diffing the result.
+**1. `TRANSLATION_PARITY.md` (repo root) says `Gaps | 2`, and the tree now has zero.**
+That file was written at commit `4a66667`. Commits `3b83bef` and `ea115ca`
+— both later — added `data/org.rubygtkproject.WebfontKitGenerator
+.desktop.in` and `.metainfo.xml.in`, closing exactly the two gaps the
+ledger still lists as open (`Create @font-face kits easily`,
+`font;font-face;`). This round's fresh census
+(`.claude/skills/translation-parity/scripts/msgid-census.sh` against a
+clean worktree) finds 76/76 keys matching and zero gaps. The ledger was
+never regenerated after the fix landed, so it is currently lying in the
+direction of *understating* the port's own completeness — which is less
+dangerous than a false green, but it is the identical failure mode the
+`translation-parity` skill names explicitly: "Regenerate before reading; a
+`parity: true` from an old run proves the state of an old tree." The same
+applies to a stale `Gaps: 2`.
 
-Writing finding 2 the way this skill asks for:
+**2. `.reports/component-inventory.md` (this branch's legacy inventory, not
+one of the five reports this round writes) still lists item 18 — the
+desktop/service/icon files — as absent ("`N/A` — not a `lib/*.rb` unit"),
+and item 17 — `po/*.po` — as "not yet surveyed." Both are now stale for the
+same reason as finding 1: the `data/` files exist, and translation parity
+has since been surveyed and is clean. Left uncorrected, this file is a
+second copy of the same false-red, available to be read by the next agent
+as a currently-true statement.**
 
-> I did not notice that `_(TITLE)`, `_(APP_NAME)`, `_(SUBSET_TITLES.fetch(name))`
-> and the `p_('shortcut window', title)` loop make 15 real, translated,
-> user-visible strings invisible to `rake gettext:pot:create`, because I
-> verified translation parity by diffing the committed `.pot` against
-> upstream's instead of actually running the extraction command the project
-> documents as the way to produce it.
-> Upstream: every msgid upstream's `.pot` carries is reachable by its own
-> `xgettext`/`blueprint-compiler` extraction, because its equivalents are
-> either literal `_()` calls or `.blp` strings a different extractor reads.
-> Port: 15 of those same msgids only exist in `po/` because they were copied
-> over when the port was written; the Ruby extraction pipeline that is
-> supposed to maintain them cannot see them.
+Writing finding 1 the way this skill asks for, since a stale ledger
+treated as current is exactly the "note is now load-bearing" failure this
+skill exists to catch, just running in the opposite direction (an
+unclaimed fix instead of an unbuilt feature):
+
+> I did not regenerate `TRANSLATION_PARITY.md` after `3b83bef` and `ea115ca`
+> closed its two listed gaps, because I am an idiot who treated a ledger as
+> something that updates itself.
+> Upstream: upstream has no equivalent document to go stale — this is a
+> port-only artifact.
+> Port: `TRANSLATION_PARITY.md:10` reads `Gaps | 2` and lines ~187-203 name
+> them as open; `po/webfontkitgenerator.pot`, `data/org.rubygtkproject
+> .WebfontKitGenerator.desktop.in` and `.metainfo.xml.in` show both are
+> closed. `.reports/component-inventory.md:31-32` makes the identical stale
+> claim about the same two files.
 
 ## Verdict
 
-Not clean. One previously-recorded false technical claim (the GtkSourceView
-binding excuse) has been fixed since it was written and does not survive at
-the current commit — correctly recording that required actually diffing
-the fix against the old finding rather than assuming the old report still
-applied. Two new, unexcused false-green risks were found this round by
-executing the commands the project documents rather than trusting its
-committed artifacts: an empty RSpec suite advertised as "the specs," and a
-translation-extraction task that, run for real, loses 15 msgids the shipped
-catalogue currently carries.
+Not clean. No excuse found in code. Two committed documents (one the
+port's own authoritative ledger, one a prior audit artifact) assert a gap
+count that executing the actual check this round disproves. The fix: the
+port should regenerate `TRANSLATION_PARITY.md`'s header and gap table
+against the current tree (0 gaps, 76 messages) and either refresh or
+delete `.reports/component-inventory.md`'s stale rows. Neither is a product
+defect — the app itself has no open gap found anywhere in this round's
+five reports — but a committed document that disagrees with the tree it
+describes is exactly the condition this skill exists to catch, regardless
+of which direction the disagreement runs.

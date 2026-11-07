@@ -3,104 +3,111 @@
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
+| Port | `ruby` @ `ea115ca9ded6afbe879afecd5d6f7e84cc4c08a9` |
 
-Each unit from `component-identification.md` compared line-by-line against
-its upstream `.blp`/`.py`.
+Each unit from `component-identification.md` compared on all four axes:
+count, style, behaviour, text. The widget/css/signal/action scan was rerun
+fresh this round (`component-scan.sh` against both worktrees) and every
+count mismatch was opened and read rather than taken at face value.
 
-## Window (`window.blp`/`window.py` vs `lib/window.rb`) — PASS
+## Window — PASS
 
-Verified against the full text of `window.blp`: every widget, every CSS
-class (`title-1`, `suggested-action`, `pill`, `content`, `heading`,
-`bottom-box`), every `styles [...]` block, the full `app-menu` (two sections,
-three items: Import from Google Fonts, Keyboard Shortcuts, About), and the
-stack page names (`main`/`progress`/`finished`, `empty`/`fonts`,
-`info`/`log`) all have a corresponding line in `lib/window.rb`. Signals
-checked: `notify::visible-child-name` on both `appstack` and (indirectly,
-via `check_ready_state`) the fonts stack; `clicked` on cancel and
-open-in-files; the drop target's `drop` signal.
+Every widget, CSS class (`title-1`, `suggested-action`, `pill`, `content`,
+`heading`, `bottom-box`), `styles [...]` block, the full `app-menu`, and the
+stack page names all have a line-for-line counterpart in `lib/window.rb`.
+Signals checked: `notify::visible-child-name` on `appstack` and the fonts
+stack, `clicked` on cancel and open-in-files, the drop target's `drop`.
+Driven live this round: `test/drive_window.rb` re-executed start to finish,
+63/63 checks passed (see `test-parity.md`), covering app-menu structure,
+shortcuts dialog, Google importer validation, options reporting, file
+load/error paths, directory selection, remove-font, and the CSS selector
+diff (step 25).
 
-Two documented, deliberate deviations, both explained in-file and neither
-hiding a missing feature:
-- `Adw.ApplicationWindow` → `Gtk::ApplicationWindow` (binding is broken; the
-  comment at `lib/window.rb:23-26` states this, and the drive suite exercises
-  the resulting window normally).
-- The cancel button's `clicked` handler is connected once instead of once
-  per generation (`lib/window.rb:508-511`) — a fix for an upstream handler
-  leak, not a gap.
+Two documented substitutions, not gaps: `Gtk::ApplicationWindow` for
+`Adw.ApplicationWindow` (binding broken — `lib/window.rb:23-26`); the
+cancel button's `clicked` handler connected once instead of per-generation
+(`lib/window.rb:508-511`), which is a fix for an upstream handler-leak, not
+a dropped feature.
 
-`win.show-help-overlay` is bound as a window action here even though
-upstream relies on GTK's built-in default for that action name; functionally
-identical, confirmed by the drive suite opening the shortcuts dialog
-(`test/drive_window.rb` step "show-help-overlay opens the shortcuts
-dialog").
+## Options sidebar — PASS
 
-## Options (`options.blp`/`options.py` vs `lib/options.rb`) — PASS
+`options.blp`'s widget tree (2 Switch+ActionRow pairs, 1 ExpanderRow with 8
+CheckButton+ActionRow pairs across two `Gtk.ListBox` columns, 1 custom-entry
+row, 1 SwitchRow, 1 ComboRow) is reproduced exactly in `lib/options.rb`,
+confirmed by reading `subset_checks`/`subset_action_row`/`subsets_list`
+(loop-built, 8 iterations each) rather than trusting the scan's static
+count of 2. `Options#formats`/`#subsetting`/`#base64?`/`#font_display`
+match `options.py`'s `get_formats`/`get_subsetting`/equivalents field for
+field, driven and asserted by `test/drive_window.rb` steps 9-10 (custom
+subsetting validation, format/subsetting/css reporting) — all passed this
+round. GSettings two-way binding (`load_saved`) matches `options.py`'s
+`Gio.Settings.bind` calls, including the `font-display`/`subsetting`
+non-boolean bindings.
 
-All eight subsetting ranges (`latin`, `latin-ext`, `cyrillic`,
-`cyrillic-ext`, `greek`, `greek-ext`, `vietnamese`, `devanagari`), their
-two-column layout (`LEFT_SUBSETS`/`RIGHT_SUBSETS`, `lib/options.rb:81-82`),
-the custom-range entry and its placeholder, the format checkboxes, Base64
-switch and font-display dropdown all present with matching titles and
-subtitles.
+## Google Fonts importer — PASS, one check not independently re-verified
 
-## Google Fonts dialog (`google.blp`/`google.py` vs `lib/google_dialog.rb`) — PASS, one runtime detail unverified
+State machine (URL validation, v1/v2 Google Fonts CSS parsing, ETag-cached
+database fetch via `google-fonts-sha`, progress-bar pulse-then-determinate,
+per-file download/tmp-write, error-collecting toast on failure) matches
+`google.py` line for line. Driven: `test/drive_window.rb` steps 6-8 (dialog
+construction, URL validation state transitions, both CSS API shapes parsed)
+passed this round. **Not independently re-verified**: an actual network
+round-trip against the live Google Fonts API — no test in this suite makes
+one. The code path was read, not executed against a real response. This is
+a real limitation of the verification, not a claim that the feature works;
+record it rather than paper over it.
 
-State machine present in full: entry validation (`on_entry_changed`,
-`check_url`, v1/v2 URL parsing, `invalid_url`/`valid_url` CSS+revealer
-toggling), ETag-cached database fetch (`database_message`,
-`store_database`, `google-fonts-sha` settings key — matches upstream's
-`If-None-Match` handling), progress bar pulse-then-determinate behaviour
-(`step_progressbar`), per-file download and tmp-file write with
-per-font error collection, and dialog termination that either hands the
-window the downloaded fonts or toasts the collected errors
-(`terminate_dialog`). Cancel wired through `Gio::Cancellable`.
+## Shortcuts dialog — PASS with a documented, bug-fixing substitution
 
-Not independently re-verified: an actual network round-trip against the
-live Google Fonts API (no such call is made by `test/drive_*.rb`, by design —
-see `test-parity.md`). The code path was read, not executed with a real
-network response.
+`Gtk::ShortcutsWindow` cannot be constructed from the Ruby bindings
+(verified again this round: constructing one raises "GtkWindow is not
+subtype of GtkShortcutsWindow"). `Adw.ShortcutsDialog` substitutes with the
+same five shortcuts, same `msgctxt "shortcut window"` titles (via
+`p_('shortcut window', title)`), and corrected accelerators — upstream's own
+`<Ctl>o` for Open Fonts is not a GTK modifier and never fires; the port
+binds `<Control>o`, a fix rather than a gap. Driven: `test/drive_window.rb`
+step 3-4 (show-help-overlay opens the dialog, all five shortcuts present).
 
-## Shortcuts dialog — PASS with a documented substitution
+## Application — PASS
 
-`Gtk.ShortcutsWindow` cannot be constructed from the Ruby GTK4 bindings
-(verified: constructing one raises "GtkWindow is not subtype of
-GtkShortcutsWindow"). The port substitutes `Adw.ShortcutsDialog` with the
-same five shortcuts, same titles (`msgctxt "shortcut window"` context
-preserved via `p_('shortcut window', title)`), same accelerators as
-`main.py`'s `set_accels_for_action` calls — including a correction: upstream
-writes `<Ctl>o` etc. (not a modifier GTK recognizes; the `<Ctl>` accelerator
-upstream advertises never fires), the port correctly uses `<Control>`.
+`about` action, five accelerators, `HANDLES_OPEN`, About dialog content.
+This round's re-check: the About dialog's second description paragraph
+(`Webfont Bundler also includes a tool to Download fonts from Google Fonts
+for self-hosting.`) now renders — upstream's metainfo has two `<p>`s and an
+earlier round of this port only rendered the first. Verified by reading
+`lib/webfont_kit_generator/application.rb:131` and by the translation
+census (see `translation-parity.md`).
 
-## Application / About dialog — PASS
+## Model/behaviour files — PASS
 
-`about` action, all five upstream accelerators plus the explicit
-`show-help-overlay` one, `HANDLES_OPEN` equivalent (`open_files`), About
-dialog fields (name, icon, version, developer, license, website, issue URL,
-the two metainfo paragraphs kept as two separate msgids, translator
-credits) all present.
+`lib/font.rb`, `lib/font_row.rb`, `lib/generator.rb`, `lib/loader.rb` each
+read against their Python counterpart; no missing widget, signal or action.
+`lib/source_view.rb` builds on the real `gtksourceview5` gem
+(`GtkSource::View`, real lexing, style-scheme switching, line-number
+gutter) — `require 'gtksourceview5'` was re-run in the dev shell this round
+and succeeds; the gem is in the gemspec, `nix/Gemfile`, and `flake.nix`'s
+`gtkStack`. `lib/log.rb`'s buffer is asserted by `test/drive_generator.rb`'s
+log-verification steps (re-run, 92/92 passed). `lib/style.rb`'s CSS rules
+are asserted selector-for-selector against upstream's `style.css` by
+`test/drive_window.rb` step 25 ("every upstream selector has a port rule
+with the same declarations") — re-run this round, passed.
 
-## Font / FontRow / Log / SourceView / Style / Generator / Loader / Settings — PASS
+## Data/packaging — now built, closing a prior gap
 
-Each read against its upstream counterpart; no missing widget, signal, or
-action found. `lib/source_view.rb` now builds on the real `gtksourceview5`
-gem (`GtkSource::View`, real lexing, style-scheme switching, the
-line-number gutter) — this closes the gap the prior
-`.reports/accountability-ensurance.md` (pre-existing, now superseded)
-recorded against an earlier commit; `gtksourceview5` is in the gemspec,
-`nix/Gemfile`, and `flake.nix`'s `gtkStack`, and `require 'gtksourceview5'`
-succeeds in the dev shell. `lib/log.rb`'s buffer is asserted on by
-`test/drive_generator.rb`'s `verify_log` (checked at the specific lines,
-see `test-parity.md`) and `lib/style.rb`'s CSS rules are asserted
-selector-for-selector against upstream's `style.css` by
-`test/drive_window.rb` step 25.
+`data/org.rubygtkproject.WebfontKitGenerator.desktop.in`, `.metainfo.xml.in`
+and `.service.in`, plus the four icon SVGs, now exist (commits `3b83bef`,
+`ea115ca`). This closes the two translation gaps an earlier round of this
+report left open (`Create @font-face kits easily`, `font;font-face;`) — see
+`translation-parity.md`, where the census confirms both msgids now reach
+the catalogue and the port's own `TRANSLATION_PARITY.md` ledger has **not**
+been regenerated to say so (flagged as a finding in
+`accountability-ensurance.md`).
 
 ## Verdict
 
 No missing window, dialog, page, menu item, keyboard shortcut, action,
-preference, empty state, or error state found. The two substitutions
-(`Gtk::ApplicationWindow`, `Adw.ShortcutsDialog`) are binding-forced and
-documented, not gaps. See `translation-parity.md` and
-`accountability-ensurance.md` for gaps that are not about widget shape —
-the extraction tooling behind the translated strings, and the gap between
-what the runtime gate executed and what it is described as covering.
+preference, empty state or error state found this round. Every count
+discrepancy the scan reported resolved to a scanner limitation (loop-built
+widgets/actions) on reading, not a real gap. The only open item is the
+Google Fonts live-network path, which is read but not driven against a
+real server response — recorded above, not excused.

@@ -2,133 +2,114 @@
 
 | | |
 |---|---|
-| Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `994afff9c734e0a7e3c144514eea3d0b6cc953e9` |
+| Upstream | `master` @ `032df25` |
+| Port | `ruby` @ `ea115ca` |
+| Domain | `webfontkitgenerator` |
+| Upstream messages (census, this round) | 76 |
+| Port messages (census, this round) | 76 |
+| Gaps (census, this round) | **0** |
+| Extra (untranslated) | 0 |
+| Unresolved markers (both sides) | 0 |
+| Languages | 24/24 `.po` files match, byte for byte filename set, `LINGUAS` matches on both sides |
+| `.mo` catalogues | compiled and committed under `locale/**/*`, shipped via the gemspec |
+| Verified on screen | `LANGUAGE=de LC_ALL=de_DE.UTF-8` under `xvfb-run`, re-run this round: `Options#formats_group.title` → `"Optionen"`, `Options#subsetting_row.title` → `"Untergruppen"`, matching `po/de.po` |
 
-## The catalogue content: every msgid survives
-
-```
-diff <(git show origin/master:po/webfontkitgenerator.pot | grep '^msgid' | sort -u) \
-     <(grep '^msgid' po/webfontkitgenerator.pot | sort -u)
-```
-→ no differences. The committed `.pot`'s msgid set is byte-identical to
-upstream's. Checked the same way for four translated locales (`ru`, `de`,
-`fr`, `es`): each has exactly 73 `msgid` entries, matching upstream exactly,
-and spot-checked translations (`"Webfont Bundler"` → `"Генератор набора
-веб-шрифтов"`, `"Show Shortcuts"` → `"Показать горячие клавиши"` in `ru.po`)
-are present and non-empty. `po/LINGUAS` matches upstream's list of 24
-locales exactly.
-
-So: nothing was dropped from the shipped catalogue. That is the good half of
-this report.
-
-## The gap: the port's own extraction tooling cannot reproduce 15 of those msgids
-
-The Rakefile ships a documented, working command for regenerating the
-catalogue from source (`rake gettext:pot:create`, `Rakefile:213-224`,
-wrapping `GetText::Tools::XGetText.run` over `lib/**/*.rb` and `exe/*`).
-Re-run this round (output saved, then the working tree restored with `git
-checkout -- po/webfontkitgenerator.pot` — nothing was left modified):
+Census re-run this round with `.claude/skills/translation-parity/scripts/
+msgid-census.sh` against a fresh `origin/master` worktree and this tree:
 
 ```
-diff <(grep '^msgid' <committed .pot> | sort -u) <(grep '^msgid' <freshly re-extracted .pot> | sort -u)
+$ cut -f1,2 upstream-msgids.tsv | sort -u | wc -l
+76
+$ cut -f1,2 port-msgids.tsv | sort -u | wc -l
+76
+$ comm -23 up.keys port.keys   # upstream keys missing from the port
+(empty)
 ```
 
-The freshly-extracted `.pot` is **missing** these 15 msgids that the
-committed one carries and that real `.po` translations exist for:
+**Zero gaps, zero unresolved, zero extra.** Every upstream msgid has a
+byte-identical counterpart somewhere in the port.
+
+## A real finding: the port's own ledger is stale, and says the opposite
+
+The committed `TRANSLATION_PARITY.md` at the repo root — the port's own
+authoritative ledger, written at commit `4a66667` — still reads:
 
 ```
-Create @font-face kits easily
-Cyrillic
-Cyrillic Extended
-Devanagari
-Disabled
-font;font-face;
-General
-Google Fonts Importer
-Greek
-Greek Extended
-Latin
-Latin Extended
-Show Shortcuts
-Vietnamese
-Webfont Bundler
+| Upstream messages | 72 |
+| Ported | 70 |
+| Gaps | 2 |
 ```
 
-Root cause, confirmed by reading the call sites: `xgettext`/`rxgettext` can
-only extract a literal string argument to `_()`/`p_()`. Several of this
-port's translated strings are passed as variables instead:
+and lists those two gaps as open: `Create @font-face kits easily` and
+`font;font-face;`, both attributed to "the port ships no
+`data/*.desktop.in` or `.metainfo.xml.in` at all." That was true when
+`4a66667` was written. It has not been true since commit `3b83bef` added
+`data/org.rubygtkproject.WebfontKitGenerator.desktop.in` and
+`.metainfo.xml.in` (both marked, both listed in `po/POTFILES.in`), and this
+round's fresh census confirms both msgids are now in the port's catalogue
+at those exact files. **The ledger was never regenerated after the fix
+landed**, so a reader of `TRANSLATION_PARITY.md` today is told the port is
+at 70/72 when the tree it describes is at 76/76. This is the inverse of a
+false green — a false red left uncorrected — but it is the same underlying
+failure the `translation-parity` skill warns about: "Regenerate before
+reading; a `parity: true` from an old run proves the state of an old tree."
+Nobody regenerated before the last commit that touched `data/`. Flagged in
+`accountability-ensurance.md`.
 
-- `lib/window.rb:124`: `win.title = _(TITLE)` — `TITLE` is a constant, not a
-  literal, so `"Webfont Bundler"` is invisible to the extractor.
-- `lib/webfont_kit_generator/application.rb:64,118`: `_(APP_NAME)`, same
-  shape — same msgid, same invisibility.
-- `lib/options.rb:364`: `_(SUBSET_TITLES.fetch(name))` — the 8 subset range
-  names (Latin, Latin Extended, Cyrillic, Cyrillic Extended, Greek, Greek
-  Extended, Vietnamese, Devanagari) are built from a hash lookup in a loop,
-  so none of them is a literal `_()` argument.
-- `lib/shortcuts_window.rb:67`: `p_('shortcut window', title)` where `title`
-  is the loop variable over `SHORTCUTS` — the context argument is a literal
-  (`'shortcut window'` is extracted fine, elsewhere) but the message itself
-  (`"Show Shortcuts"`, `"General"`, …) is not.
-- `"Google Fonts Importer"` is both a shortcut title (same loop-variable
-  problem) and upstream's menu-item label at `window.blp`'s `importers-section`
-  — in the port that label is `section.append(_('Import from Google Fonts'),
-  ...)` (a different, correctly-literal string); `"Google Fonts Importer"`
-  itself only exists as the shortcuts-dialog title, which is the same
-  loop-variable gap.
-- `"Create @font-face kits easily"` and `"font;font-face;"` are the
-  `metainfo.xml.in`/`.desktop.in` summary and keywords. `po/POTFILES` only
-  lists `lib/**/*.rb`-derived files (`lib/webfont_kit_generator/application.rb`,
-  `lib/window.rb`, `lib/options.rb`, `lib/google_dialog.rb`,
-  `lib/generator.rb`, `lib/loader.rb`, `lib/font_row.rb`,
-  `lib/shortcuts_window.rb`) — there is no port-side desktop/metainfo file
-  these two strings could be extracted from at all, literal or not.
+(The commit-count drift between the stale ledger's 72 and this round's 76
+is the same two `data/` messages plus the two it already had, consistent
+with the fix adding exactly those two files' strings and nothing else
+changing.)
 
-The committed `.pot` and the 24 `.po` files are not wrong — their content
-was verified above to be complete and correct. But they were not produced,
-and cannot currently be reproduced, by the tool the project documents as the
-way to maintain them. They match upstream because upstream's own catalogue
-was carried over wholesale when the port was written, not because
-`rake gettext:pot:create` can regenerate that match. The first contributor
-who adds a new translatable string and runs the documented command will get
-a `.pot` that is silently missing these 15 entries relative to what is
-actually shown in the UI, and merging `.po` updates against that narrower
-`.pot` will eventually drop the translations for "Webfont Bundler", the
-eight subset names, and the four shortcuts-dialog-only titles.
+## The extraction-tooling gap from the prior round: closed, re-verified by running it
 
-## A second, related gap: nothing ships or builds the compiled catalogue
+A prior round's `.reports/translation-parity.md` recorded that
+`rake gettext:pot:create`, run for real, dropped 15 msgids reached through
+non-literal `_()`/`p_()` call sites (`_(TITLE)`, `_(SUBSET_TITLES.fetch
+(name))`, a loop over `SHORTCUTS`, etc.). This round re-ran the same
+command from a clean worktree rather than trusting that commit's message:
 
-`lib/translatable.rb` binds gettext to `locale/` (`LOCALE_DIR =
-File.expand_path('../locale', __dir__)`), which is populated by
-`rake gettext:mo:update` (`Rakefile:198-209`) compiling `po/*.po` into
-`locale/<lang>/LC_MESSAGES/webfontkitgenerator.mo`. `locale/` is gitignored
-(`.gitignore:` `locale`, `/locale/`) and currently exists in this checkout
-with 24 locale subdirectories — compiled by someone, at some point, by hand.
+```
+$ cp po/webfontkitgenerator.pot /tmp/pot.orig
+$ bundle exec rake gettext:pot:create
+$ grep '^msgid' po/webfontkitgenerator.pot | sort > new.txt
+$ grep '^msgid' /tmp/pot.orig | sort > old.txt
+$ diff old.txt new.txt
+(empty — 73 msgids both sides, identical)
+$ git checkout -- po/webfontkitgenerator.pot   # working tree left clean
+```
 
-Neither `flake.nix`'s dev shell nor the gemspec's `spec.files` (which lists
-`po/**/*` but not `locale/**/*`) wires `gettext:mo:update` into anything
-that runs automatically:
-- The dev shell has no `shellHook` step that compiles the `.mo` files, so a
-  fresh clone's `nix develop` shell has translations bound to a `locale/`
-  directory that does not exist, until someone remembers to run the rake
-  task by hand.
-- The gemspec ships no compiled catalogue, so an installed release gem
-  (`gem install webfont-kit-generator-rb`) would have `po/*.po` on disk but
-  no `locale/*/LC_MESSAGES/*.mo` anywhere `bindtextdomain` can find, which
-  means every non-English locale silently falls back to the English
-  (untranslated) strings for an end user, not a crash — the quiet kind of
-  gap that is easy to miss because the app still runs.
+Confirmed: the extraction pipeline now reproduces the committed `.pot`
+exactly, because `3b83bef` replaced every non-literal `_()`/`p_()` call
+site with literal arguments and added `po/extractors.rb`'s
+`DesktopParser`/`MetainfoParser` for the two non-Ruby sources. This is a
+genuinely closed gap, verified by executing the command, not by reading
+the commit message that claims it.
 
-Neither of these was checked by `test/drive_*.rb`: both drive scripts run
-under whatever locale the host process is in (no `LANG`/`LANGUAGE`
-override observed in either script), so neither one actually exercises a
-translated string end to end.
+## Languages
+
+```
+$ diff <(ls up/po/*.po | xargs -n1 basename) <(ls po/*.po | xargs -n1 basename)
+(empty)
+$ diff <(sort up/po/LINGUAS) <(sort po/LINGUAS)
+(empty)
+```
+
+24/24 `.po` files present on both sides, same filenames, `LINGUAS` matches
+the file list on both sides. `.mo` files are committed under `locale/` and
+were exercised live by the `de` on-screen check above.
+
+## Unrun checks
+
+- `msgfmt -c` strict validation of the 24 `.po` files was not run this
+  round (the nix devshell's `gettext` tooling path was not separately
+  checked for `msgfmt -c` specifically, only the `rake gettext:mo:update`
+  compile, which the `locale/**/*.mo` files already committed are evidence
+  of). Name this as unrun rather than folding it into "parity: true."
 
 ## Verdict
 
-Not clean. The shipped catalogue content is complete (every upstream msgid
-is present, every spot-checked translation is present), but the
-maintenance pipeline that regenerates it is demonstrably lossy when actually
-run, and nothing in the build, packaging, or dev-shell setup compiles or
-ships the catalogue an end user's non-English UI depends on.
+The *catalogue* has translation parity: 76/76 keys, 0 gaps, 0 unresolved,
+24/24 languages, one language verified rendering on screen. The *port's own
+ledger document* does not currently say this, and that mismatch is itself
+the finding — see `accountability-ensurance.md`.
