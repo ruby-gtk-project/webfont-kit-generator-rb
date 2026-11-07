@@ -122,12 +122,19 @@ module WebfontKitGenerator
           dialog.license_type = Gtk::License::GPL_3_0
           dialog.website = 'https://github.com/rafaelmardojai/webfont-kit-generator'
           dialog.issue_url = 'https://github.com/ruby-gtk-project/webfont-kit-generator-rb/issues'
-          # Upstream's metainfo description, from
-          # `data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:9`.
-          dialog.comments = _(
+          # Upstream's metainfo description is two <p>s
+          # (`data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:9,12`);
+          # each is its own msgid upstream, so each is marked on its own line
+          # and joined for display rather than merged into one translation.
+          first_paragraph = _(
             'Webfont Bundler is a simple utility that allows you to generate woff, woff2 ' \
             'and the necessary CSS boilerplate from non-web font formats (otf and ttf).',
           )
+          second_paragraph = _(
+            'Webfont Bundler also includes a tool to Download fonts from Google Fonts ' \
+            'for self-hosting.',
+          )
+          dialog.comments = "#{first_paragraph}\n\n#{second_paragraph}"
           dialog.translator_credits = _('translator-credits')
           dialog.present(window.window)
         end
