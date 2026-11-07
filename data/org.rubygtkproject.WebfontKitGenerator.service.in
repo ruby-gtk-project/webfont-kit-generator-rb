@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.rubygtkproject.WebfontKitGenerator
+Exec=@bindir@/webfont-kit-generator --gapplication-service
