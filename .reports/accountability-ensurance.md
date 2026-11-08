@@ -3,101 +3,128 @@
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `ea115ca9ded6afbe879afecd5d6f7e84cc4c08a9` |
+| Port | `ruby` @ `6893c450641b22b129f7b5386dc08e4ed4a7b6e7` |
 
-Scan: `find-excuses.sh` run over the whole tree, plus manual `grep -rn`
-for `TODO|FIXME|not implemented|for now|in a future|no ruby bindings|not
-supported|unsupported|skipped|placeholder|deliberately|out of scope|by
-design` across `lib/`, `exe/`, `.reports/`, `TRANSLATION_PARITY.md` and
-`COMPONENT_PARITY.md` (there is no `PORTING.md` on this branch). Every hit
-read in context rather than counted.
+Scan: `find-excuses.sh` run over the whole tree this round, plus manual
+`grep -rniE 'TODO|FIXME|not implemented|for now|in a future|no ruby
+bindings|not supported|unsupported|skipped|placeholder|deliberately|out of
+scope|by design'` across `lib/`, `exe/`, `.reports/`, `TRANSLATION_PARITY.md`
+and this tree's other committed prose. Every hit read in context rather than
+counted.
 
 ## No open excuse in `lib/`/`exe/`
 
-- `placeholder_text` (`lib/google_dialog.rb:180`, `lib/options.rb:290`) is
-  the GTK entry API, not an excuse.
-- `lib/log.rb:6`'s "skipped" is prose describing the log widget's italic
-  style, not a skipped port task.
-- `lib/generator.rb:32`'s "Two upstream behaviours are deliberately not
-  reproduced" is, read in full, two documented *bug fixes* to upstream (a
-  Python string-interpolation bug that always logged the literal text
-  `<class 'range'>`, and a `clicked`-handler reconnect leak) — a correction
-  with the upstream bug quoted and verified against
-  `webfontkitgenerator/generator.py`, not a missing feature. This is the
-  opposite of an excuse.
-- No `TODO`, `FIXME`, "not implemented", "for now", "in a future", "no
-  Ruby bindings [for X, unqualified]", or "not supported" survives a read
-  anywhere in `lib/` or `exe/` this round.
+```
+$ bash .claude/skills/accountability-ensurance/scripts/find-excuses.sh .
+TRANSLATION_PARITY.md:147:Skipping:...
+.reports/component-parity.md:62:SKIPPED:...
+.reports/accountability-ensurance.md:69/10/19/20: (this file's own prior
+  round quoting the rule — a document about excuses, exempt per this
+  skill's own "two things it will match that you should not rewrite")
+```
 
-## A previously-recorded excuse, checked, and confirmed gone
+Every hit read:
 
-An earlier round's `.reports/accountability-ensurance.md` recorded that
-`lib/source_view.rb` falsely claimed "no Ruby bindings for GtkSourceView 5"
-to excuse a hand-rolled `Gtk::TextView`. Re-read at the current commit:
-`lib/source_view.rb` now `require 'gtksourceview5'`s and subclasses
-`GtkSource::View` directly, the gem is wired into the gemspec,
-`nix/Gemfile` and `flake.nix`'s `gtkStack`, and `require 'gtksourceview5'`
-was re-run in the dev shell this round and succeeds. That excuse and the
-gap behind it are both gone — verified by running the require, not by
-reading last round's note.
+- `TRANSLATION_PARITY.md:147` — `"No glyphs where found for {range}.
+  Skipping."` is a **msgid**, upstream's own translatable string
+  (`generator.py`), appearing in a parity ledger's message table. It is
+  prose about a string, not an excuse for missing work.
+- `.reports/component-parity.md:62` — `"It skips itself cleanly (exit 0,
+  labelled SKIPPED)"` describes `test/drive_google_fonts.rb`'s own designed
+  behaviour (skip gracefully with no network) — a feature of the test
+  script, not an excuse for an unported app feature. Re-verified this round:
+  the script was run against a live connection and all 8 checks passed (see
+  `test-parity.md`); its offline-skip path exists and is documented, not
+  invoked.
+- No `TODO`, `FIXME`, "not implemented", "for now", "in a future", "no Ruby
+  bindings [for X, unqualified]", "not supported", "out of scope", or "by
+  design" survives a read anywhere in `lib/` or `exe/` this round. The one
+  prior finding in this category — `lib/source_view.rb` once claiming "no
+  Ruby bindings for GtkSourceView 5" to excuse a hand-rolled `Gtk::TextView`
+  — was closed two rounds ago and re-confirmed again this round:
+  `require 'gtksourceview5'` was re-run fresh in the dev shell this round
+  and succeeds; `lib/source_view.rb` subclasses `GtkSource::View` directly.
 
-## The real finding this round: two committed ledgers no longer describe the tree they're about
+## A real binding limitation, correctly recorded (not an excuse)
 
-Nothing in `lib/`/`exe/` claims false completeness in prose. The false
-claims this round are in the *parity ledgers themselves* — numbers that
-were true when written and have not been updated since the code moved past
-them. Both were found by re-executing the underlying check, not by reading
-the ledger's own words.
+`lib/window.rb:23-26` and `lib/shortcuts_window.rb:12-16` each document a
+genuine Ruby-bindings defect — `Adwaita::ApplicationWindow` raising on
+construction, and `Gtk::ShortcutsWindow` raising "GtkWindow is not subtype
+of GtkShortcutsWindow" — re-verified this round by attempting the
+construction directly:
 
-**1. `TRANSLATION_PARITY.md` (repo root) says `Gaps | 2`, and the tree now has zero.**
-That file was written at commit `4a66667`. Commits `3b83bef` and `ea115ca`
-— both later — added `data/org.rubygtkproject.WebfontKitGenerator
-.desktop.in` and `.metainfo.xml.in`, closing exactly the two gaps the
-ledger still lists as open (`Create @font-face kits easily`,
-`font;font-face;`). This round's fresh census
-(`.claude/skills/translation-parity/scripts/msgid-census.sh` against a
-clean worktree) finds 76/76 keys matching and zero gaps. The ledger was
-never regenerated after the fix landed, so it is currently lying in the
-direction of *understating* the port's own completeness — which is less
-dangerous than a false green, but it is the identical failure mode the
-`translation-parity` skill names explicitly: "Regenerate before reading; a
-`parity: true` from an old run proves the state of an old tree." The same
-applies to a stale `Gaps: 2`.
+```
+$ nix develop --command xvfb-run -a ruby -e 'require "gtk4"; Gtk::Window.new; Gtk::ShortcutsWindow.new'
+RAISED: TypeError: GtkWindow is not subtype of GtkShortcutsWindow
+```
 
-**2. `.reports/component-inventory.md` (this branch's legacy inventory, not
-one of the five reports this round writes) still lists item 18 — the
-desktop/service/icon files — as absent ("`N/A` — not a `lib/*.rb` unit"),
-and item 17 — `po/*.po` — as "not yet surveyed." Both are now stale for the
-same reason as finding 1: the `data/` files exist, and translation parity
-has since been surveyed and is clean. Left uncorrected, this file is a
-second copy of the same false-red, available to be read by the next agent
-as a currently-true statement.**
+Both comments name the substitution (`Gtk::ApplicationWindow`,
+`Adw.ShortcutsDialog`) and the behaviour preserved, in the file, at the
+line — this is the correct shape per the skill: a binding limitation
+explaining why a correspondence was necessary, never a reason a gap is
+closed, and in both cases the correspondence was verified in
+`component-parity.md` to actually carry the full behaviour across (same
+widget tree, same accelerators, same five shortcuts).
 
-Writing finding 1 the way this skill asks for, since a stale ledger
-treated as current is exactly the "note is now load-bearing" failure this
-skill exists to catch, just running in the opposite direction (an
-unclaimed fix instead of an unbuilt feature):
+## Last round's finding, re-checked and confirmed closed
 
-> I did not regenerate `TRANSLATION_PARITY.md` after `3b83bef` and `ea115ca`
-> closed its two listed gaps, because I am an idiot who treated a ledger as
-> something that updates itself.
-> Upstream: upstream has no equivalent document to go stale — this is a
-> port-only artifact.
-> Port: `TRANSLATION_PARITY.md:10` reads `Gaps | 2` and lines ~187-203 name
-> them as open; `po/webfontkitgenerator.pot`, `data/org.rubygtkproject
-> .WebfontKitGenerator.desktop.in` and `.metainfo.xml.in` show both are
-> closed. `.reports/component-inventory.md:31-32` makes the identical stale
-> claim about the same two files.
+A previous round of this report flagged two documents disagreeing with the
+tree they described:
+
+1. **`TRANSLATION_PARITY.md`** said `Gaps | 2` for two msgids
+   (`Create @font-face kits easily`, `font;font-face;`) that commits
+   `3b83bef`/`ea115ca` had already closed by shipping `data/org
+   .rubygtkproject.WebfontKitGenerator.desktop.in`/`.metainfo.xml.in`.
+2. **`.reports/component-inventory.md`** items 17/18 said the same two
+   things were still open/unsurveyed.
+
+Both were regenerated in commit `6893c45`. Re-checked this round from the
+current `HEAD`, not from that commit's message:
+
+```
+$ head -11 TRANSLATION_PARITY.md
+| Upstream messages | 72 |
+| Ported | 72 |
+| Gaps | 0 |
+
+$ grep -n 'not yet surveyed\|N/A' .reports/component-inventory.md
+(no matches on items 17/18 any more)
+```
+
+Closed, confirmed by reading the current files rather than trusting the fix
+commit's own description of itself.
+
+## This round's finding: this report's own prior sibling document was wrong, in the "looks more thorough" direction
+
+`.reports/translation-parity.md` (the version this round replaces) claimed
+"76 upstream messages / 76 port messages" from the raw
+`msgid-census.sh` output without excluding `po:`-kind rows — rows the
+census deliberately emits for provenance but that `catalogue.rb` (and the
+skill's own worked examples) exclude from the message count, because a
+`.po` file keeps obsolete msgids from before the app's rename
+("Webfont Kit Generator" → "Webfont Bundler") that no `_()` call anywhere in
+either tree's source still produces. Both sides agreed at 76, so no parity
+verdict was ever wrong — but the number itself was the wrong one to put in a
+ledger, and a bigger, more-precise-looking number that came from skipping a
+documented exclusion is exactly the shape of error this skill exists to
+catch even when it runs in the "looks more careful" direction rather than
+the "excuses a gap" direction. Rewritten this round in `translation-parity.md`
+with the four stale `po/hi.po`/`po/zh.po` rows named, and the correct
+72/72/0 restored, derived from `catalogue.rb --compare` rather than from a
+hand-filtered `cut | sort -u | wc -l`.
+
+> I reported 76/76 instead of 72/72 last round because I ran `wc -l` on a
+> census stream without reading what the skill's own document says that
+> stream contains, and a number nobody checked against the tool meant to
+> produce it is worth exactly as much as one I invented.
 
 ## Verdict
 
-Not clean. No excuse found in code. Two committed documents (one the
-port's own authoritative ledger, one a prior audit artifact) assert a gap
-count that executing the actual check this round disproves. The fix: the
-port should regenerate `TRANSLATION_PARITY.md`'s header and gap table
-against the current tree (0 gaps, 76 messages) and either refresh or
-delete `.reports/component-inventory.md`'s stale rows. Neither is a product
-defect — the app itself has no open gap found anywhere in this round's
-five reports — but a committed document that disagrees with the tree it
-describes is exactly the condition this skill exists to catch, regardless
-of which direction the disagreement runs.
+**Clean.** No excuse found in `lib/`/`exe/` this round. The two previously
+committed stale documents (`TRANSLATION_PARITY.md`,
+`.reports/component-inventory.md`) are confirmed regenerated and now agree
+with the tree. The one correction this round makes is to this audit's own
+prior-round sibling report, not to the port: `.reports/translation-parity.md`'s
+76/76 is replaced with the methodologically-correct 72/72, with zero change
+to the parity verdict in either direction. No gap is being excused anywhere
+in this tree as of `6893c45`.

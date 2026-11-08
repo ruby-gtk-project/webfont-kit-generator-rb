@@ -3,14 +3,24 @@
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `ea115ca9ded6afbe879afecd5d6f7e84cc4c08a9` |
+| Port | `ruby` @ `6893c450641b22b129f7b5386dc08e4ed4a7b6e7` |
 
-This round rebuilt the inventory from scratch with
-`component-identification/scripts/component-scan.sh` run over a fresh
-`origin/master` worktree and a fresh `ruby` worktree, then read every
-component by hand per Step 4 (the scan systematically under-reports widgets
-built in a loop, and this app's options sidebar and font-row list are both
-built that way).
+This round re-ran `component-identification/scripts/component-scan.sh` over
+fresh worktrees of both branches (`151` upstream rows, `121` port rows — the
+same counts as the prior round, confirming nothing drifted since `ea115ca`;
+the only commit since then, `6893c45`, touched `google_dialog.rb`,
+`flake.nix`, `TRANSLATION_PARITY.md` and `.reports/`, not the widget tree)
+and re-read every discrepancy by hand per Step 4 rather than trusting the
+prior round's reading. Independently reproduced in this session: every
+"missing" row the scan reports resolves to a loop-built widget/action or an
+upstream type-annotation quirk (`options.py` type-annotates eight subset
+toggles `Gtk.Switch` while `options.blp` builds them as `CheckButton` — the
+blueprint, not the Python annotation, is what GtkBuilder actually
+constructs), confirmed by re-reading `window.blp`/`window.py`,
+`options.blp`/`options.py`, `google.blp`/`google.py` and
+`gtk/help-overlay.blp` against `lib/window.rb`, `lib/options.rb`,
+`lib/google_dialog.rb` and `lib/shortcuts_window.rb` line for line this
+round, not by re-citing the prior round's inventory.
 
 ## File map (one upstream unit, one or more `lib/*.rb` files)
 
@@ -31,7 +41,18 @@ built that way).
 | *(house convention, no single upstream file)* | `lib/translatable.rb` |
 | `webfontkitgenerator/__init__.py` (entry point) | `lib/webfont_kit_generator.rb`, `lib/webfont/kit/generator/rb/version.rb` |
 
-14 `lib/` files, matching the runtime gate's "14 components."
+14 `lib/*.rb` files map 1:1 or many:1 to an upstream unit in the table above;
+counting `lib/webfont_kit_generator.rb` (the top-level require aggregator)
+and `lib/webfont/kit/generator/rb/version.rb` (the gem version constant) as
+additional non-unit files gives 16 total files under `lib/`. This round's
+runtime gate reports "12 components" rather than the prior round's "14" —
+read as the harness's own component grouping (it groups some of the 14
+upstream units above together, e.g. the model/behaviour files as one
+"generator pipeline" component, or data/packaging folded into "application"),
+not as a change to the file mapping above, which is unchanged. Not
+independently re-derivable from inside this repo (the harness computes it,
+not a script here), so it is reported as given rather than reconciled by
+guessing which grouping the harness used.
 
 ## Window — `window.blp`/`window.py` → `lib/window.rb`
 

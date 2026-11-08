@@ -3,12 +3,27 @@
 | | |
 |---|---|
 | Upstream | `origin/master` @ `032df25285cab1c14ef5bfd1e242bcec2157d14f` |
-| Port | `ruby` @ `ea115ca9ded6afbe879afecd5d6f7e84cc4c08a9` |
+| Port | `ruby` @ `6893c450641b22b129f7b5386dc08e4ed4a7b6e7` |
 
 Each unit from `component-identification.md` compared on all four axes:
 count, style, behaviour, text. The widget/css/signal/action scan was rerun
 fresh this round (`component-scan.sh` against both worktrees) and every
 count mismatch was opened and read rather than taken at face value.
+
+**Re-verified this round, independently of the prior round's reading:**
+every per-unit `union` diff below was re-run from clean worktrees of
+`origin/master` and `origin/ruby`, and the window, options, Google dialog
+and shortcuts-window file pairs were each re-read line by line against
+`lib/window.rb`, `lib/options.rb`, `lib/google_dialog.rb` and
+`lib/shortcuts_window.rb`. All four axes hold as this document already
+described; nothing has regressed since `ea115ca`, and the one commit since
+then (`6893c45`) only fixed two real defects on the Google-import path
+(`GLib::Bytes#get_data` → `#to_s`; `glib-networking`/`GIO_EXTRA_MODULES`
+wiring) and closed the two data/packaging translation gaps — neither
+changes any row below. The text axis for every unit now also cross-checks
+clean against this round's `translation-parity.md` (72/72, 0 gaps), which
+is itself a widened recheck relative to the prior round's then-unreconciled
+76 vs. 72 discrepancy.
 
 ## Window — PASS
 
