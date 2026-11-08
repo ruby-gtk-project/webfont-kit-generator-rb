@@ -44,18 +44,49 @@ round. GSettings two-way binding (`load_saved`) matches `options.py`'s
 `Gio.Settings.bind` calls, including the `font-display`/`subsetting`
 non-boolean bindings.
 
-## Google Fonts importer — PASS, one check not independently re-verified
+## Google Fonts importer — PASS, now driven against a live response
 
 State machine (URL validation, v1/v2 Google Fonts CSS parsing, ETag-cached
 database fetch via `google-fonts-sha`, progress-bar pulse-then-determinate,
 per-file download/tmp-write, error-collecting toast on failure) matches
 `google.py` line for line. Driven: `test/drive_window.rb` steps 6-8 (dialog
 construction, URL validation state transitions, both CSS API shapes parsed)
-passed this round. **Not independently re-verified**: an actual network
-round-trip against the live Google Fonts API — no test in this suite makes
-one. The code path was read, not executed against a real response. This is
-a real limitation of the verification, not a claim that the feature works;
-record it rather than paper over it.
+passed this round.
+
+**Closed this round**: `test/drive_google_fonts.rb` makes the real network
+round-trip this report previously flagged as unverified — a live GET
+against `https://www.googleapis.com/webfonts/v1/webfonts` with the app's
+real API key, a live per-file font download, and assertions against bytes
+that actually came back over the wire (a real sfnt header, a font parsed
+by name as "Roboto" out of the downloaded file, the on-disk ETag cache
+written for real). It skips itself cleanly (exit 0, labelled `SKIPPED`)
+when `www.googleapis.com` does not resolve, so it is safe in an offline
+CI run but still exercises the real path whenever network is available.
+
+Driving it for real caught two real defects that reading alone had missed,
+both now fixed:
+
+1. **`lib/google_dialog.rb`'s `store_database`/`write_font` called
+   `bytes.get_data.to_s`** on the `GLib::Bytes` libsoup hands back from
+   `send_and_read_finish`. This binding's `GLib::Bytes` has no `get_data`
+   method (`to_s`/`to_str` return the raw bytes directly) — every real
+   call raised `NoMethodError`, caught by a blanket `rescue StandardError`
+   that silently fell back to "use the local cache or fail". The database
+   fetch always looked successful (`Google Fonts Response Status 200 OK`
+   printed every time) while never actually parsing a response. Fixed to
+   `bytes.to_s` in both methods.
+2. **`flake.nix`'s `gtkStack` had no TLS backend** for `libsoup_3`: every
+   live HTTPS request failed with `TLS support is not available` until
+   `glib-networking` was added to `gtkStack` and wired through
+   `GIO_EXTRA_MODULES` in both the dev shell and the packaged wrapper.
+   Without it, the Google Fonts importer cannot make a single real request
+   in a from-scratch Nix build or devshell, on any machine, with or
+   without network.
+
+Both were real, silent failures on the actual execution path the soup3 gem
+is required for — exactly the "a gem being `require`d and called is not
+proof it works" trap this round's brief warns about. Re-run after the fix:
+8 of 8 checks pass against the live API.
 
 ## Shortcuts dialog — PASS with a documented, bug-fixing substitution
 
@@ -99,9 +130,9 @@ and `.service.in`, plus the four icon SVGs, now exist (commits `3b83bef`,
 `ea115ca`). This closes the two translation gaps an earlier round of this
 report left open (`Create @font-face kits easily`, `font;font-face;`) — see
 `translation-parity.md`, where the census confirms both msgids now reach
-the catalogue and the port's own `TRANSLATION_PARITY.md` ledger has **not**
-been regenerated to say so (flagged as a finding in
-`accountability-ensurance.md`).
+the catalogue. The root `TRANSLATION_PARITY.md` ledger was regenerated this
+round (it previously still said `Gaps | 2` after the fix had already
+landed); it now reports 72/72 messages ported, 0 gaps.
 
 ## Verdict
 

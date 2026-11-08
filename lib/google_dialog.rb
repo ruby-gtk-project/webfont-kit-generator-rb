@@ -469,7 +469,13 @@ class GoogleDialog
     end
 
     def store_database(bytes, response_headers)
-      JSON.parse(bytes.get_data.to_s).then do |data|
+      # GLib::Bytes has no `get_data` in this binding's version — `to_s`
+      # (aliased `to_str`) returns the raw bytes directly. This was only
+      # ever exercised by reading until this round's live network drive
+      # (test/drive_google_fonts.rb) actually ran the response through it
+      # and hit a real NoMethodError, caught silently by the `rescue
+      # StandardError` below and masked as "use the local cache or fail".
+      JSON.parse(bytes.to_s).then do |data|
         if data.key?('kind')
           save_local_data(data['items'])
           @settings.set_string('google-fonts-sha', response_headers.get_one('ETag').to_s)
@@ -572,7 +578,7 @@ class GoogleDialog
 
     def write_font(name, bytes)
       Gio::File.new_tmp(nil).first.then do |file|
-        File.binwrite(file.path, bytes.get_data.to_s)
+        File.binwrite(file.path, bytes.to_s)
         @files << file
       end
     rescue StandardError => e

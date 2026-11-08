@@ -28,8 +28,8 @@ comparison (CSS classes, signal wiring, dynamic classes) is the job of
 | 14 | *(house convention; no single upstream file)* `_()`/`gettext` calls across all `.py`/`.blp` | `lib/translatable.rb` | translation helper shared by the widget classes | Yes |
 | 15 | `webfontkitgenerator/__init__.py` | `lib/webfont_kit_generator.rb`, `lib/webfont/kit/generator/rb/version.rb` | entry point / version constant | Yes |
 | 16 | `data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in` | — (consumed by `Adwaita::AboutDialog.new_from_appdata` equivalent in `application.rb`'s `show_about`) | metadata — About dialog content | Present via `application.rb` |
-| 17 | `po/*.po`, `po/webfontkitgenerator.pot` | — | translation catalogue | Not yet surveyed for parity (out of scope for widget inventory; flag for `translation-parity`) |
-| 18 | `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in`, `.service.in`, icons (`webfontkitgenerator-remove-symbolic.svg`, `completed-symbolic.svg`, `splash-a-symbolic.svg`, `splash-b-symbolic.svg`, app icon SVGs) | — (packaging/build-system concern, not `lib/` code) | desktop integration / icon assets | N/A — not a `lib/*.rb` unit |
+| 17 | `po/*.po`, `po/webfontkitgenerator.pot` | `po/*.po`, `po/webfontkitgenerator.pot` | translation catalogue | Surveyed by `translation-parity` (see `TRANSLATION_PARITY.md`): 72/72 upstream messages ported, 0 gaps, 24/24 languages shipped |
+| 18 | `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in`, `.metainfo.xml.in`, `.service.in`, icons (`webfontkitgenerator-remove-symbolic.svg`, `completed-symbolic.svg`, `splash-a-symbolic.svg`, `splash-b-symbolic.svg`, app icon SVGs) | `data/org.rubygtkproject.WebfontKitGenerator.desktop.in`, `.metainfo.xml.in`, `.service.in`, matching icons under `data/icons/` | desktop integration / icon assets / AppStream metadata | Yes — all three `data/*.in` files and the icon set are present and listed in `po/POTFILES` |
 
 ## Summary
 
@@ -48,7 +48,9 @@ file.
 
 **Open items for follow-on work (not blockers to this survey):**
 - `po/` catalogue parity (translated strings vs. `lib/translatable.rb` usage)
-  was not checked here — that is `translation-parity`'s job.
+  has since been checked by `translation-parity` and closed — see
+  `TRANSLATION_PARITY.md` (72/72 messages, 0 gaps, both `data/*.in` files
+  shipped and listed in `po/POTFILES`).
 - A full five-facet widget scan (CSS classes, signals, actions down to each
   dynamic case) was not run per `component-identification`'s Step 2–4
   tooling; the table above was built by direct reading of each upstream file

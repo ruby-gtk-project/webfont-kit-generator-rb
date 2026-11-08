@@ -25,8 +25,13 @@
           libadwaita
           harfbuzz
           librsvg
-          # The Google Fonts importer's HTTP client (soup3 gem).
+          # The Google Fonts importer's HTTP client (soup3 gem). libsoup has
+          # no TLS backend built in — it loads one as a GIO module at
+          # runtime — so glib-networking has to ship too, or every HTTPS
+          # request (every real Google Fonts request) fails with "TLS
+          # support is not available" even though the gem loaded cleanly.
           libsoup_3
+          glib-networking
           # The generated-code preview (gtksourceview5 gem).
           gtksourceview5
         ]
@@ -99,6 +104,11 @@
         # `.out`. at-spi2-core is here for the Atk typelib.
         typelibPath = pkgs.lib.makeSearchPath "lib/girepository-1.0"
           (map (drv: drv.out or drv) (gtkStack ++ [ pkgs.at-spi2-core ]));
+
+        # glib-networking installs its TLS backend as a GIO module, found at
+        # runtime through GIO_EXTRA_MODULES rather than through
+        # GI_TYPELIB_PATH — it is not introspected, just dlopen'd by GIO.
+        gioModulePath = "${pkgs.glib-networking}/lib/gio/modules";
 
         # nix/ and not the repo root: the root Gemfile is kettle-jem's
         # development bundle — rubocop, rspec, yard, the kettle-dev stack — and
@@ -174,6 +184,7 @@
               --add-flags "-I$out/share/webfont-kit-generator/lib" \
               --add-flags "$out/share/webfont-kit-generator/exe/${launcher}" \
               --set GI_TYPELIB_PATH "${typelibPath}" \
+              --set GIO_EXTRA_MODULES "${gioModulePath}" \
               --set WEBFONT_BROTLI_LIB "${brotliEncoder}" \
               --prefix XDG_DATA_DIRS : "$out/share" \
               --prefix XDG_DATA_DIRS : "$out/share/gsettings-schemas/webfont-kit-generator-0.1.0" \
@@ -223,6 +234,7 @@
           shellHook = ''
             export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
             export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+            export GIO_EXTRA_MODULES="${gioModulePath}''${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
             export RUBYLIB="$PWD/lib''${RUBYLIB:+:$RUBYLIB}"
             export WEBFONT_BROTLI_LIB="${brotliEncoder}"
             export WEBFONT_SAMPLE_FONT="${sampleFont}"

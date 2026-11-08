@@ -3,14 +3,14 @@
 | | |
 |---|---|
 | Upstream | `master` @ `032df25` (2026-08-19) |
-| Port | `ruby` @ this commit |
+| Port | `ruby` @ `fd4b3c8` |
 | Domain | `webfontkitgenerator` (`po/meson.build`'s `i18n.gettext('webfontkitgenerator', ...)`) |
 | Upstream messages | 72 |
-| Ported | 70 |
-| Gaps | 2 |
+| Ported | 72 |
+| Gaps | 0 |
 | Extra (untranslated) | 0 |
 | Upstream occurrences | 80 across 72 messages (7 reused) |
-| Port occurrences | 64 |
+| Port occurrences | 87 across 72 messages (11 reused) |
 | Upstream languages | 24 `.po` files, 1,394 translated, 234 untranslated, 100 fuzzy |
 | Languages shipped by the port | 24 (`po/*.po` and `po/LINGUAS` copied from upstream unchanged; `linguas_matches_files: true` both sides) |
 | Build | `rake gettext:mo:update` compiles `po/*.po` into `locale/<lang>/LC_MESSAGES/webfontkitgenerator.mo`, already committed under `locale/` |
@@ -21,8 +21,17 @@ an `origin/master` worktree and this tree, per the `translation-parity` skill.
 
 ## A scanner limitation, and why 16 rows below are hand-verified
 
-The generated `--compare` run reports 18 "gap" rows, but 16 of them are not
-gaps: they are upstream messages the port reaches through a **marked
+**Update, this round:** re-running `catalogue.rb --compare` against the
+current tree reports 0 gap rows, not 18 — the constant-table lookups below
+now resolve correctly (each shows `state: ported` with its real `lib/`
+call-site line, e.g. `Disabled` → `lib/options.rb:317`). Whether that is a
+scanner fix landed upstream in this skill or a change in how the port marks
+these strings, the hand census below is kept as a record of what was
+verified and remains correct; it is no longer needed to explain a gap, since
+there is none.
+
+The generated `--compare` run previously reported 18 "gap" rows, but 16 of
+them were not gaps: they were upstream messages the port reaches through a **marked
 constant-table lookup** — `_(FONT_DISPLAY.first)`, `_(SUBSET_TITLES.fetch(name))`,
 `p_('shortcut window', title)` with `title` a hash key, `_(APP_NAME)` /
 `_(TITLE)` — and the scanner's regex only reads a literal string argument, so
@@ -182,21 +191,34 @@ and `Window::TITLE` are defined and used.)
 | # | msgid | Kind | Uses | Port site | State |
 |---|---|---|---|---|---|
 | 1 | `Webfont Bundler is a simple utility that allows you to generate woff, woff2 and the necessary CSS boilerplate from non-web font formats (otf and ttf).` | single | 1 → 1 | `lib/webfont_kit_generator/application.rb:127` (about dialog, first paragraph) | ported |
-| 2 | `Webfont Bundler also includes a tool to Download fonts from Google Fonts for self-hosting.` | single | 1 → 1 | `lib/webfont_kit_generator/application.rb:131` (about dialog, second paragraph) | ported — closed this round; previously a gap because the about dialog only rendered the first `<p>` |
+| 2 | `Webfont Bundler also includes a tool to Download fonts from Google Fonts for self-hosting.` | single | 1 → 2 | `lib/webfont_kit_generator/application.rb:133` (about dialog, second paragraph) | ported |
+
+## data/com.rafaelmardojai.WebfontKitGenerator.desktop.in → data/org.rubygtkproject.WebfontKitGenerator.desktop.in (2 messages)
+
+Closed this round (commits `3b83bef`, `ea115ca`): the port now ships
+`data/org.rubygtkproject.WebfontKitGenerator.desktop.in` and
+`.metainfo.xml.in`, both listed in `po/POTFILES`, so these two strings — the
+`.desktop` file's `Comment=` and `Keywords=` lines, read by the GNOME shell
+and app-grid search from the installed `.desktop`/metainfo files rather than
+anything the running Ruby process renders — are now in the port's catalogue.
+
+| # | msgid | Kind | Uses | Port site | State |
+|---|---|---|---|---|---|
+| 1 | `Create @font-face kits easily` | single | 2 → 2 | `data/org.rubygtkproject.WebfontKitGenerator.desktop.in:6`, `data/org.rubygtkproject.WebfontKitGenerator.metainfo.xml.in` | ported |
+| 2 | `font;font-face;` | single | 1 → 1 | `data/org.rubygtkproject.WebfontKitGenerator.desktop.in:13` | ported |
 
 ## Gaps
 
-| # | msgctxt | msgid | Upstream sites | Text still owed | Waits on |
-|---|---|---|---|---|---|
-| 1 | — | `Create @font-face kits easily` | `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:3`, `data/com.rafaelmardojai.WebfontKitGenerator.metainfo.xml.in:7` | `Create @font-face kits easily` | The port ships no `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in` or `.metainfo.xml.in` at all — `find data -type f` in this tree returns only icon SVGs. This string is the `.desktop` file's `Comment=` / the metainfo's `<summary>`, which the GNOME shell and app-grid search read from the installed `.desktop`/metainfo files, not from anything the running Ruby process can render. It cannot be closed by changing `lib/`; it needs that data/ packaging component built and listed in `po/POTFILES`. |
-| 2 | — | `font;font-face;` | `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in:10` | `font;font-face;` | Same cause: this is the `.desktop` file's `Keywords=` line, used only by desktop search indexing. No `data/*.desktop.in` exists in this port yet. |
-
-Both gaps are real and both are component gaps, not translation gaps: the
-msgids are known (above) and the 24 `.po` files already carry translations
-for both, so closing them is "ship a `data/com.rafaelmardojai.WebfontKitGenerator.desktop.in`
-and `.metainfo.xml.in`, mark their strings, add them to `po/POTFILES`" —
-a packaging-data component this round did not build, not a string anyone
-reworded or dropped.
+None. A fresh census this round (`.claude/skills/translation-parity/scripts/catalogue.rb`
+run against an `origin/master` worktree at `032df25` and this tree at
+`fd4b3c8`, then `--compare`d) finds 72/72 upstream messages ported, 0 gaps,
+0 kind mismatches, and 24/24 languages shipped — `summary.parity: true` in
+the generated comparison. The two rows previously listed here
+(`Create @font-face kits easily`, `font;font-face;`) are both now `ported`,
+closed by the `data/*.in` files added in commits `3b83bef` and `ea115ca`
+(see the table above); this ledger was simply never regenerated after that
+fix landed, so the stale `Gaps | 2` in the header above was a reporting
+defect, not an actual state of the tree.
 
 ## Extra
 

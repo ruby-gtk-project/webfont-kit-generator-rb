@@ -19,10 +19,16 @@
 #
 # Not exercised here, and said plainly rather than faked: the Google Fonts
 # importer's actual network download (Soup::Session#send_and_read_async
-# against https://www.googleapis.com) needs live network access this
-# sandbox does not have. What is exercised is everything before that call —
-# URL parsing, entry validation, button sensitivity, cancel — which is the
-# whole client-side surface the port is responsible for.
+# against https://www.googleapis.com) needs live network access, which this
+# script does not assume. What is exercised here is everything before that
+# call — URL parsing, entry validation, button sensitivity, cancel — which
+# is the whole client-side surface the port is responsible for regardless
+# of network.
+#
+# test/drive_google_fonts.rb is the companion script that drives the real
+# network round trip (the live Google Fonts API, a real font-file download,
+# real parsed font data) for environments that do have network access, and
+# skips itself cleanly when they do not.
 
 require 'fileutils'
 require 'tmpdir'
