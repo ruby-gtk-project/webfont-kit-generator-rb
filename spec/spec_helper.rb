@@ -53,6 +53,8 @@ RSpec.configure do |config|
 end
 # `kettle/test/rspec` installs harness helpers documented in spec/README.md.
 
+# `kettle/test/rspec` installs harness helpers documented in spec/README.md.
+
 # This library
 require "webfont/kit/generator/rb"
 
